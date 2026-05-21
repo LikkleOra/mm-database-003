@@ -80,6 +80,16 @@ export const getById = query({
   },
 });
 
+export const getByDiscordHandle = query({
+  args: { discordHandle: v.string() },
+  handler: async (ctx, { discordHandle }) => {
+    return ctx.db
+      .query("creators")
+      .withIndex("by_discord", (q) => q.eq("discordHandle", discordHandle))
+      .unique();
+  },
+});
+
 export const create = mutation({
   args: {
     name: v.string(),
