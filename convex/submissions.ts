@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const list = query({
@@ -56,6 +56,28 @@ const platformValidator = v.union(
   v.literal("Twitter"),
   v.literal("Threads"),
 );
+
+// Called from HTTP actions (Google Forms, Discord bot) — no user session available
+export const createInternal = internalMutation({
+  args: {
+    creatorId: v.id("creators"),
+    platform: platformValidator,
+    contentUrl: v.string(),
+    datePosted: v.optional(v.string()),
+    driveLink: v.optional(v.string()),
+    campaign: v.optional(v.string()),
+    affiliateLink: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    discordUserId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    return ctx.db.insert("submissions", {
+      ...args,
+      status: "pending",
+      submittedAt: new Date().toISOString(),
+    });
+  },
+});
 
 export const create = mutation({
   args: {

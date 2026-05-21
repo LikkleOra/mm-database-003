@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 const http = httpRouter();
 
@@ -57,7 +57,7 @@ http.route({
       });
     }
 
-    await ctx.runMutation(api.submissions.create, {
+    await ctx.runMutation(internal.submissions.createInternal, {
       creatorId: creator._id,
       platform: platform as "TikTok" | "Instagram" | "YouTube" | "Facebook" | "Twitter" | "Threads",
       contentUrl: body.contentUrl,
