@@ -221,39 +221,45 @@ export const bulkImport = mutation({
       throw new Error("Unauthorized: admin or manager required");
 
     const existing = await ctx.db.query("creators").collect();
-    const existingHandles = new Set(existing.map((c) => c.discordHandle.toLowerCase()));
+    const existingByHandle = new Map(
+      existing.map((c) => [c.discordHandle.toLowerCase(), c])
+    );
 
     let created = 0;
     let skipped = 0;
 
     for (const c of creators) {
-      if (existingHandles.has(c.discordHandle.toLowerCase())) {
-        skipped++;
-        continue;
-      }
+      const existingCreator = existingByHandle.get(c.discordHandle.toLowerCase());
 
-      const creatorId = await ctx.db.insert("creators", {
-        name: c.name,
-        discordHandle: c.discordHandle,
-        campaign,
-        tier: "Bronze",
-        isActive: true,
-        commissionRate: 1,
-        joinedAt: new Date().toISOString(),
-        profile: c.profile ?? undefined,
-      });
-
-      for (const account of c.accounts) {
-        await ctx.db.insert("social_accounts", {
-          creatorId,
-          platform: account.platform,
-          handle: account.handle,
-          url: account.url,
+      if (!existingCreator) {
+        // Brand new creator — insert with campaign
+        const creatorId = await ctx.db.insert("creators", {
+          name: c.name,
+          discordHandle: c.discordHandle,
+          campaign,
+          tier: "Bronze",
+          isActive: true,
+          commissionRate: 1,
+          joinedAt: new Date().toISOString(),
+          profile: c.profile ?? undefined,
         });
+        for (const account of c.accounts) {
+          await ctx.db.insert("social_accounts", {
+            creatorId,
+            platform: account.platform,
+            handle: account.handle,
+            url: account.url,
+          });
+        }
+        created++;
+      } else if (!existingCreator.campaign) {
+        // Orphaned creator (no campaign assigned) — claim them for this campaign
+        await ctx.db.patch(existingCreator._id, { campaign });
+        created++;
+      } else {
+        // Already assigned to a campaign — skip
+        skipped++;
       }
-
-      existingHandles.add(c.discordHandle.toLowerCase());
-      created++;
     }
 
     return { created, skipped };

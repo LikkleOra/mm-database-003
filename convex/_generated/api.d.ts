@@ -15,6 +15,7 @@ import type * as discord from "../discord.js";
 import type * as http from "../http.js";
 import type * as leaderboard from "../leaderboard.js";
 import type * as payouts from "../payouts.js";
+import type * as shop_accounts from "../shop_accounts.js";
 import type * as social_accounts from "../social_accounts.js";
 import type * as submissions from "../submissions.js";
 import type * as users from "../users.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   leaderboard: typeof leaderboard;
   payouts: typeof payouts;
+  shop_accounts: typeof shop_accounts;
   social_accounts: typeof social_accounts;
   submissions: typeof submissions;
   users: typeof users;
