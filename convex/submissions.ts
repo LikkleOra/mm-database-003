@@ -131,6 +131,7 @@ export const review = mutation({
 
 export const bulkImport = mutation({
   args: {
+    campaign: v.optional(v.union(v.literal("Afina"), v.literal("Sigma"))),
     submissions: v.array(v.object({
       creatorDiscordHandle: v.string(),
       contentUrl: v.string(),
@@ -142,6 +143,7 @@ export const bulkImport = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
+    // Match creators across ALL campaigns so the handle lookup always works
     const allCreators = await ctx.db.query("creators").collect();
     let created = 0;
     let skipped = 0;
@@ -161,6 +163,7 @@ export const bulkImport = mutation({
         platform: sub.platform,
         contentUrl: sub.contentUrl,
         notes: sub.notes,
+        campaign: args.campaign,
         status: "pending",
         submittedAt: new Date().toISOString(),
       });

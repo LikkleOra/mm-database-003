@@ -191,6 +191,7 @@ const profileValidator = v.optional(v.object({
 
 export const bulkImport = mutation({
   args: {
+    campaign: campaignValidator,
     creators: v.array(v.object({
       discordHandle: v.string(),
       name: v.string(),
@@ -208,7 +209,7 @@ export const bulkImport = mutation({
       })),
     })),
   },
-  handler: async (ctx, { creators }) => {
+  handler: async (ctx, { campaign, creators }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
@@ -234,6 +235,7 @@ export const bulkImport = mutation({
       const creatorId = await ctx.db.insert("creators", {
         name: c.name,
         discordHandle: c.discordHandle,
+        campaign,
         tier: "Bronze",
         isActive: true,
         commissionRate: 1,

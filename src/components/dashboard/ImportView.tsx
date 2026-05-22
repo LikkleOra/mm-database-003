@@ -251,7 +251,7 @@ function cleanProfile(p: ParsedCreator['profile']): Record<string, string> | und
 
 const ACCEPT = '.csv,.xlsx,.xls';
 
-export function ImportView() {
+export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
   const bulkImportCreators    = useMutation(api.creators.bulkImport);
   const bulkImportSubmissions = useMutation(api.submissions.bulkImport);
 
@@ -316,13 +316,13 @@ export function ImportView() {
         const payload = parsedCreators.map(({ discordHandle, name, profile, accounts }) => ({
           discordHandle, name, profile: cleanProfile(profile), accounts,
         }));
-        const result = await bulkImportCreators({ creators: payload });
+        const result = await bulkImportCreators({ campaign, creators: payload });
         setImportResult(result);
       } else {
         const payload = parsedSubmissions.map(({ creatorDiscordHandle, contentUrl, platform, notes }) => ({
           creatorDiscordHandle, contentUrl, platform, notes,
         }));
-        const result = await bulkImportSubmissions({ submissions: payload });
+        const result = await bulkImportSubmissions({ campaign, submissions: payload });
         setImportResult(result);
       }
       setStep('done');
@@ -353,15 +353,23 @@ export function ImportView() {
   return (
     <div className="max-w-4xl space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-          <Upload className="w-5 h-5 text-emerald-500" />
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+            <Upload className="w-5 h-5 text-emerald-500" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-zinc-100 tracking-tight">Bulk Import</h2>
+            <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest mt-0.5">
+              CSV · Excel · Google Sheets
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-xl font-bold text-zinc-100 tracking-tight">Bulk Import</h2>
-          <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest mt-0.5">
-            CSV · Excel · Google Sheets
-          </p>
+        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
+            Importing into: {campaign}
+          </span>
         </div>
       </div>
 

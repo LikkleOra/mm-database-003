@@ -316,7 +316,7 @@ function AuthenticatedApp() {
         {activeView === 'submissions' && <SubmissionsView userRole={userRole} creators={creators} activeCreatorIds={activeCreatorIds} />}
         {activeView === 'leaderboard' && <LeaderboardView userRole={userRole} />}
         {activeView === 'payouts' && <PayoutsView userRole={userRole} creators={creators} />}
-        {activeView === 'import' && <ImportView />}
+        {activeView === 'import' && <ImportView campaign={activeCampaign} />}
         {activeView === 'submit' && <SubmitLinkView campaign={activeCampaign} />}
         {activeView === 'adshop' && <AdShopView userRole={userRole} creators={creators} />}
 
