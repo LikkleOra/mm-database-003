@@ -349,3 +349,32 @@ export const seed = mutation({
     }
   },
 });
+
+// Assigns all creators with no campaign to the specified campaign.
+// Run from the Convex dashboard to recover orphaned records.
+export const migrateOrphanedCreators = mutation({
+  args: {
+    campaign: v.union(v.literal("Afina"), v.literal("Sigma")),
+  },
+  handler: async (ctx, { campaign }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user || user.role !== "admin") throw new Error("Unauthorized: admin only");
+
+    const allCreators = await ctx.db.query("creators").collect();
+    const orphaned = allCreators.filter((c) => !c.campaign);
+
+    let patched = 0;
+    for (const creator of orphaned) {
+      await ctx.db.patch(creator._id, { campaign });
+      patched++;
+    }
+
+    return { patched, campaign };
+  },
+});
