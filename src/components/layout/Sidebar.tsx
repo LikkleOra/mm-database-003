@@ -59,7 +59,7 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose, activeCampa
       <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
         <h1 className="text-xl font-bold tracking-tight text-zinc-100 flex items-center gap-2">
           <div className="w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center text-black font-bold">M</div>
-          MM Database
+          Afina - Sigma Database
         </h1>
         <button
           onClick={onClose}

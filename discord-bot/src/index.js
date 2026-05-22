@@ -133,7 +133,7 @@ client.on('messageCreate', async (message) => {
       await message.reply(
         `⚠️ **Couldn't match your submission.**\n` +
         `Make sure your Discord username (\`${message.author.username}\`) matches your ` +
-        `**discordHandle** in the MM Database.\n` +
+        `**discordHandle** in the Afina - Sigma Database.\n` +
         `> Ask an admin to check your profile if this keeps happening.\n` +
         `> _Error: ${data.error}_`
       );

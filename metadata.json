@@ -1,5 +1,5 @@
 {
-  "name": "MM Database",
+  "name": "Afina - Sigma Database",
   "description": "Creator Performance Dashboard with live Google Sheets integration to track metrics, submissions, activities, and payouts.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

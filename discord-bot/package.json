@@ -1,7 +1,7 @@
 {
   "name": "mm-discord-bot",
   "version": "1.0.0",
-  "description": "Discord bot — captures creator video submissions and sends them to the MM Database",
+  "description": "Discord bot — captures creator video submissions and sends them to the Afina - Sigma Database",
   "main": "src/index.js",
   "type": "commonjs",
   "scripts": {
