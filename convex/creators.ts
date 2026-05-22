@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 const EMPTY_METRICS = { gmv: 0, posts: 0, lives: 0, orders: 0 };
@@ -352,20 +352,11 @@ export const seed = mutation({
 
 // Assigns all creators with no campaign to the specified campaign.
 // Run from the Convex dashboard to recover orphaned records.
-export const migrateOrphanedCreators = mutation({
+export const migrateOrphanedCreators = internalMutation({
   args: {
     campaign: v.union(v.literal("Afina"), v.literal("Sigma")),
   },
   handler: async (ctx, { campaign }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!user || user.role !== "admin") throw new Error("Unauthorized: admin only");
-
     const allCreators = await ctx.db.query("creators").collect();
     const orphaned = allCreators.filter((c) => !c.campaign);
 
