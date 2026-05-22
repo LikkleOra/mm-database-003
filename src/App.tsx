@@ -23,6 +23,7 @@ import { LeaderboardView } from './components/dashboard/LeaderboardView';
 import { PayoutsView } from './components/dashboard/PayoutsView';
 import { ImportView } from './components/dashboard/ImportView';
 import { SubmitLinkView } from './components/dashboard/SubmitLinkView';
+import { AdShopView } from './components/dashboard/AdShopView';
 import { ActivityType } from './types';
 import { AnimatePresence, motion } from 'motion/react';
 import { Plus, X, AlertCircle, CheckCircle, UserPlus, Menu } from 'lucide-react';
@@ -317,8 +318,9 @@ function AuthenticatedApp() {
         {activeView === 'payouts' && <PayoutsView userRole={userRole} creators={creators} />}
         {activeView === 'import' && <ImportView />}
         {activeView === 'submit' && <SubmitLinkView campaign={activeCampaign} />}
+        {activeView === 'adshop' && <AdShopView userRole={userRole} creators={creators} />}
 
-        {activeView !== 'database' && activeView !== 'timeline' && activeView !== 'reports' && activeView !== 'settings' && activeView !== 'videos' && activeView !== 'discord' && activeView !== 'youtube' && activeView !== 'submissions' && activeView !== 'leaderboard' && activeView !== 'payouts' && activeView !== 'import' && activeView !== 'submit' && (
+        {activeView !== 'database' && activeView !== 'timeline' && activeView !== 'reports' && activeView !== 'settings' && activeView !== 'videos' && activeView !== 'discord' && activeView !== 'youtube' && activeView !== 'submissions' && activeView !== 'leaderboard' && activeView !== 'payouts' && activeView !== 'import' && activeView !== 'submit' && activeView !== 'adshop' && (
           <div className="flex flex-col items-center justify-center h-[60vh] text-center">
             <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center text-black mb-6 font-bold text-2xl">M</div>
             <h2 className="text-2xl font-bold text-zinc-100 italic font-serif tracking-tight">Module Under Development</h2>

@@ -102,6 +102,16 @@ export default defineSchema({
     .index("by_creator", ["creatorId"])
     .index("by_status", ["status"]),
 
+  shop_accounts: defineTable({
+    creatorId: v.id("creators"),
+    platform: v.union(v.literal("TikTok"), v.literal("Instagram"), v.literal("YouTube")),
+    shopName: v.optional(v.string()),
+    adAccountName: v.optional(v.string()),
+    shopUrl: v.string(),
+    verified: v.optional(v.boolean()),
+    notes: v.optional(v.string()),
+  }).index("by_creator", ["creatorId"]),
+
   payouts: defineTable({
     creatorId: v.id("creators"),
     amount: v.number(),

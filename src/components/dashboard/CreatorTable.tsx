@@ -13,7 +13,6 @@ import {
   Twitter,
   Video,
   MoreHorizontal,
-  ArrowUpRight,
   X,
 } from 'lucide-react';
 
@@ -190,18 +189,14 @@ export function CreatorTable({ creators, onSelectCreator, onExport }: CreatorTab
               <th className="px-5 py-3">Tier</th>
               <th className="px-5 py-3">Accounts</th>
               <th className="px-5 py-3">Active</th>
-              <th className="px-5 py-3 text-right">1%</th>
-              <th className="px-5 py-3 text-right">GMV MTD</th>
-              <th className="px-5 py-3 text-right">GMV 7D</th>
-              <th className="px-5 py-3 text-right">Posts</th>
-              <th className="px-5 py-3 text-right">Lives</th>
+              <th className="px-5 py-3 text-right">Active Posts</th>
               <th className="px-5 py-3 w-10"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-5 py-16 text-center">
+                <td colSpan={7} className="px-5 py-16 text-center">
                   <p className="text-zinc-500 text-sm font-medium">No creators match your search or filters.</p>
                   {(search || activeFilters > 0) && (
                     <button
@@ -267,25 +262,7 @@ export function CreatorTable({ creators, onSelectCreator, onExport }: CreatorTab
                     </div>
                   </td>
                   <td className="px-5 py-4 text-right">
-                    <p className="text-sm font-mono font-medium text-zinc-400">{creator.commissionRate}%</p>
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <div>
-                      <p className="text-sm font-mono font-bold text-zinc-100">${creator.metrics.mtd.gmv.toLocaleString()}</p>
-                      <div className="flex items-center justify-end gap-1 mt-0.5">
-                        <ArrowUpRight className="w-3 h-3 text-emerald-500" />
-                        <span className="text-[10px] text-emerald-500 font-bold">MTD</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <p className="text-sm font-mono font-semibold text-zinc-300">${creator.metrics.sevenDay.gmv.toLocaleString()}</p>
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <p className="text-sm font-mono font-medium text-zinc-400">{creator.metrics.mtd.posts}</p>
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <p className="text-sm font-mono font-medium text-zinc-400">{creator.metrics.mtd.lives}</p>
+                    <p className="text-sm font-mono font-bold text-zinc-100">{creator.metrics.mtd.posts}</p>
                   </td>
                   <td className="px-5 py-4">
                     <button className="p-1.5 rounded-lg hover:bg-zinc-700 text-zinc-500 hover:text-zinc-200 transition-all opacity-0 group-hover:opacity-100">

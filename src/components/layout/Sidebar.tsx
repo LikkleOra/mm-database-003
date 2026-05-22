@@ -6,7 +6,7 @@
 import {
   Users, History, Video, Target, MessageSquare, Youtube,
   Zap, BarChart3, Settings, LayoutDashboard, LogOut, X,
-  Inbox, Trophy, DollarSign, FileUp, Link as LinkIcon,
+  Inbox, Trophy, DollarSign, FileUp, Link as LinkIcon, ShoppingBag,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUser, useClerk } from '@clerk/clerk-react';
@@ -25,6 +25,7 @@ const NAV_ITEMS = [
   { id: 'database', label: 'Creator Database', icon: Users },
   { id: 'submit', label: 'Submit Link', icon: LinkIcon },
   { id: 'submissions', label: 'Submissions', icon: Inbox },
+  { id: 'adshop', label: 'Ad Shop', icon: ShoppingBag },
   { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
   { id: 'payouts', label: 'Payouts', icon: DollarSign },
   { id: 'videos', label: 'Videos', icon: Video },
