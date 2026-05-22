@@ -12,6 +12,7 @@ export default defineSchema({
   creators: defineTable({
     name: v.string(),
     discordHandle: v.string(),
+    campaign: v.optional(v.union(v.literal("Afina"), v.literal("Sigma"))),
     tier: v.union(v.literal("Bronze"), v.literal("Silver"), v.literal("Gold"), v.literal("Platinum")),
     isActive: v.boolean(),
     commissionRate: v.number(),
@@ -31,7 +32,9 @@ export default defineSchema({
       toneVibe: v.optional(v.string()),
       postingFrequency: v.optional(v.string()),
     })),
-  }).index("by_discord", ["discordHandle"]),
+  })
+    .index("by_discord", ["discordHandle"])
+    .index("by_campaign", ["campaign"]),
 
   social_accounts: defineTable({
     creatorId: v.id("creators"),

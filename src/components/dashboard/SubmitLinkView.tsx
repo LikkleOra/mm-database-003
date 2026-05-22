@@ -70,8 +70,8 @@ const FIELDS: FieldDef[] = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function SubmitLinkView() {
-  const creators = useQuery(api.creators.list) ?? [];
+export function SubmitLinkView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
+  const creators = useQuery(api.creators.list, { campaign }) ?? [];
   const createSubmission = useMutation(api.submissions.create);
 
   // Form state

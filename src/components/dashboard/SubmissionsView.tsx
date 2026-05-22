@@ -35,6 +35,7 @@ type StatusFilter = 'pending' | 'approved' | 'rejected' | undefined;
 interface Props {
   userRole: 'admin' | 'manager' | 'viewer';
   creators: Creator[];
+  activeCreatorIds: Set<string>;
 }
 
 function timeAgo(iso: string): string {
@@ -47,7 +48,7 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export function SubmissionsView({ userRole, creators }: Props) {
+export function SubmissionsView({ userRole, creators, activeCreatorIds }: Props) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(undefined);
   const submissionsData = useQuery(api.submissions.list, { status: statusFilter });
   const countsData = useQuery(api.submissions.counts);
@@ -58,7 +59,7 @@ export function SubmissionsView({ userRole, creators }: Props) {
   const canReview = userRole === 'admin' || userRole === 'manager';
 
   const isLoading = submissionsData === undefined;
-  const submissions = submissionsData ?? [];
+  const submissions = (submissionsData ?? []).filter((s) => activeCreatorIds.has(s.creatorId));
   const counts = countsData ?? { pending: 0, approved: 0, rejected: 0 };
 
   // Submit modal state

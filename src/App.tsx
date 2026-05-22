@@ -56,8 +56,11 @@ function AuthenticatedApp() {
     seedCreators();
   }, []);
 
+  const [activeCampaign, setActiveCampaign] = useState<'Afina' | 'Sigma'>('Afina');
+  const [activeView, setActiveView] = useState('database');
+
   // Queries — undefined while loading
-  const creatorsData = useQuery(api.creators.list);
+  const creatorsData = useQuery(api.creators.list, { campaign: activeCampaign });
   const activitiesData = useQuery(api.activities.listAll);
   const currentUser = useQuery(api.users.me);
   const usersData = useQuery(api.users.listAll);
@@ -68,8 +71,6 @@ function AuthenticatedApp() {
   const creators = creatorsData ?? [];
   const activities = activitiesData ?? [];
   const userRole = currentUser?.role ?? 'viewer';
-
-  const [activeView, setActiveView] = useState('database');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedCreatorId, setSelectedCreatorId] = useState<string | null>(null);
   const [showAddActivityModal, setShowAddActivityModal] = useState(false);
@@ -87,6 +88,13 @@ function AuthenticatedApp() {
   const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
   const firstName = user?.firstName || 'MM';
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  const activeCreatorIds = useMemo(() => new Set(creators.map((c) => c.id)), [creators]);
+
+  const campaignActivities = useMemo(
+    () => activities.filter((a) => activeCreatorIds.has(a.creatorId)),
+    [activities, activeCreatorIds]
+  );
 
   const selectedCreator = useMemo(
     () => creators.find((c) => c.id === selectedCreatorId) || null,
@@ -176,7 +184,7 @@ function AuthenticatedApp() {
     setIsCreatingCreator(true);
 
     try {
-      await createCreator({ name: name.trim(), discordHandle: discordHandle.trim(), tier, commissionRate: commissionRateRaw });
+      await createCreator({ name: name.trim(), discordHandle: discordHandle.trim(), tier, commissionRate: commissionRateRaw, campaign: activeCampaign });
       setShowCreateCreatorModal(false);
       showToast('success', `Creator "${name.trim()}" added successfully.`);
     } catch (err) {
@@ -205,12 +213,14 @@ function AuthenticatedApp() {
   };
 
   return (
-    <div className="flex min-h-screen bg-zinc-950 font-sans text-zinc-100">
+    <div className="flex min-h-screen bg-zinc-950 font-sans text-zinc-100" data-campaign={activeCampaign.toLowerCase()}>
       <Sidebar
         activeView={activeView}
         onViewChange={setActiveView}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        activeCampaign={activeCampaign}
+        onCampaignChange={setActiveCampaign}
       />
 
       <main className="flex-1 md:ml-64 p-4 md:p-8 min-w-0">
@@ -289,7 +299,7 @@ function AuthenticatedApp() {
 
         {activeView === 'timeline' && (
           <TimelineView
-            activities={activities}
+            activities={campaignActivities}
             creators={creators}
             users={usersData ?? []}
             userRole={userRole}
@@ -302,11 +312,11 @@ function AuthenticatedApp() {
         {activeView === 'videos' && <VideosView userRole={userRole} creators={creators} />}
         {activeView === 'discord' && <DiscordTrackingView creators={creators} userRole={userRole} />}
         {activeView === 'youtube' && <YouTubeView userRole={userRole} creators={creators} />}
-        {activeView === 'submissions' && <SubmissionsView userRole={userRole} creators={creators} />}
+        {activeView === 'submissions' && <SubmissionsView userRole={userRole} creators={creators} activeCreatorIds={activeCreatorIds} />}
         {activeView === 'leaderboard' && <LeaderboardView userRole={userRole} />}
         {activeView === 'payouts' && <PayoutsView userRole={userRole} creators={creators} />}
         {activeView === 'import' && <ImportView />}
-        {activeView === 'submit' && <SubmitLinkView />}
+        {activeView === 'submit' && <SubmitLinkView campaign={activeCampaign} />}
 
         {activeView !== 'database' && activeView !== 'timeline' && activeView !== 'reports' && activeView !== 'settings' && activeView !== 'videos' && activeView !== 'discord' && activeView !== 'youtube' && activeView !== 'submissions' && activeView !== 'leaderboard' && activeView !== 'payouts' && activeView !== 'import' && activeView !== 'submit' && (
           <div className="flex flex-col items-center justify-center h-[60vh] text-center">

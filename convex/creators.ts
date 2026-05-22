@@ -9,15 +9,18 @@ const metricsValidator = v.object({
   sevenDay: v.object({ gmv: v.number(), posts: v.number(), lives: v.number(), orders: v.number() }),
 });
 
+const campaignValidator = v.optional(v.union(v.literal("Afina"), v.literal("Sigma")));
+
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { campaign: campaignValidator },
+  handler: async (ctx, { campaign }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
 
-    // Fetch creators and all social accounts in 2 queries (avoids N+1).
     const [creators, allAccounts] = await Promise.all([
-      ctx.db.query("creators").collect(),
+      campaign
+        ? ctx.db.query("creators").withIndex("by_campaign", (q) => q.eq("campaign", campaign)).collect()
+        : ctx.db.query("creators").collect(),
       ctx.db.query("social_accounts").collect(),
     ]);
 
@@ -32,6 +35,7 @@ export const list = query({
       id: creator._id as string,
       name: creator.name,
       discordHandle: creator.discordHandle,
+      campaign: creator.campaign,
       tier: creator.tier,
       isActive: creator.isActive,
       commissionRate: creator.commissionRate,
@@ -94,6 +98,7 @@ export const create = mutation({
   args: {
     name: v.string(),
     discordHandle: v.string(),
+    campaign: campaignValidator,
     tier: v.union(v.literal("Bronze"), v.literal("Silver"), v.literal("Gold"), v.literal("Platinum")),
     commissionRate: v.number(),
     managerId: v.optional(v.string()),
@@ -111,6 +116,7 @@ export const create = mutation({
     return await ctx.db.insert("creators", {
       name: args.name,
       discordHandle: args.discordHandle,
+      campaign: args.campaign,
       tier: args.tier,
       isActive: true,
       commissionRate: args.commissionRate,
@@ -123,6 +129,7 @@ export const create = mutation({
 export const update = mutation({
   args: {
     id: v.id("creators"),
+    campaign: campaignValidator,
     tier: v.optional(v.union(v.literal("Bronze"), v.literal("Silver"), v.literal("Gold"), v.literal("Platinum"))),
     isActive: v.optional(v.boolean()),
     commissionRate: v.optional(v.number()),

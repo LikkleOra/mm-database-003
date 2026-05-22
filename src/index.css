@@ -18,6 +18,14 @@
   --color-emerald-900: #064e3b;
 }
 
+/* Sigma campaign: swap emerald → red across all Tailwind utility classes */
+[data-campaign="sigma"] {
+  --color-emerald-400: #f87171;
+  --color-emerald-500: #ef4444;
+  --color-emerald-600: #dc2626;
+  --color-emerald-900: #7f1d1d;
+}
+
 @layer base {
   body {
     @apply bg-zinc-950 text-zinc-100 antialiased;
