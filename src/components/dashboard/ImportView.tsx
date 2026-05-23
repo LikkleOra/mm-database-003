@@ -6,7 +6,6 @@ import {
   ChevronRight, Users, RefreshCw, Link as LinkIcon,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -44,27 +43,6 @@ interface ParsedSubmission {
 // ── File parsing helpers ──────────────────────────────────────────────────────
 
 async function fileToRows(file: File): Promise<string[][]> {
-  const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
-  if (isExcel) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = () => reject(new Error('Could not read file.'));
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const wb = XLSX.read(data, { type: 'array' });
-          const ws = wb.Sheets[wb.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '' });
-          resolve(rows as string[][]);
-        } catch (err) {
-          reject(err);
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    });
-  }
-
-  // CSV via PapaParse
   return new Promise((resolve, reject) => {
     Papa.parse<string[]>(file, {
       complete: (result) => resolve(result.data as string[][]),
@@ -249,7 +227,7 @@ function cleanProfile(p: ParsedCreator['profile']): Record<string, string> | und
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-const ACCEPT = '.csv,.xlsx,.xls';
+const ACCEPT = '.csv';
 
 export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
   const bulkImportCreators    = useMutation(api.creators.bulkImport);
@@ -270,8 +248,8 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
 
   async function handleFile(file: File) {
     const ext = file.name.split('.').pop()?.toLowerCase();
-    if (!['csv', 'xlsx', 'xls'].includes(ext ?? '')) {
-      setParseError('Please upload a .csv, .xlsx, or .xls file.');
+    if (ext !== 'csv') {
+      setParseError('Please upload a .csv file. Export from Google Sheets or Excel as CSV first.');
       return;
     }
     setParseError(null);
@@ -430,7 +408,7 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
               </p>
             )}
             <p className="text-[10px] text-zinc-600 font-medium mt-1">
-              Accepts .csv, .xlsx, .xls — export directly from Google Sheets or Excel
+              Accepts .csv — export from Google Sheets (File → Download → CSV) or Excel (Save As → CSV)
             </p>
           </div>
 
@@ -446,7 +424,7 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
             </div>
             <div className="text-center">
               <p className="text-sm font-bold text-zinc-300">Drop your file here or click to browse</p>
-              <p className="text-xs text-zinc-600 mt-1 font-medium">CSV, Excel (.xlsx, .xls) — from Google Sheets or Excel</p>
+              <p className="text-xs text-zinc-600 mt-1 font-medium">CSV only — export from Google Sheets or Excel as CSV first</p>
             </div>
           </div>
           <input ref={fileRef} type="file" accept={ACCEPT} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
