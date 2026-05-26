@@ -87,10 +87,16 @@ export const getById = query({
 export const getByDiscordHandle = query({
   args: { discordHandle: v.string() },
   handler: async (ctx, { discordHandle }) => {
-    return ctx.db
+    const normalized = discordHandle.replace(/^@/, "").toLowerCase().trim();
+    const exact = await ctx.db
       .query("creators")
-      .withIndex("by_discord", (q) => q.eq("discordHandle", discordHandle))
+      .withIndex("by_discord", (q) => q.eq("discordHandle", normalized))
       .unique();
+    if (exact) return exact;
+    const all = await ctx.db.query("creators").collect();
+    return all.find(
+      (c) => c.discordHandle.toLowerCase().replace(/^@/, "").trim() === normalized
+    ) ?? null;
   },
 });
 
@@ -115,7 +121,7 @@ export const create = mutation({
 
     return await ctx.db.insert("creators", {
       name: args.name,
-      discordHandle: args.discordHandle,
+      discordHandle: args.discordHandle.replace(/^@/, "").toLowerCase().trim(),
       campaign: args.campaign,
       tier: args.tier,
       isActive: true,

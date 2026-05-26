@@ -57,6 +57,10 @@ http.route({
       });
     }
 
+    const campaign = body.campaign === "Afina" || body.campaign === "Sigma"
+      ? (body.campaign as "Afina" | "Sigma")
+      : undefined;
+
     await ctx.runMutation(internal.submissions.createInternal, {
       creatorId: creator._id,
       platform: platform as "TikTok" | "Instagram" | "YouTube" | "Facebook" | "Twitter" | "Threads",
@@ -64,6 +68,7 @@ http.route({
       datePosted: body.datePosted || undefined,
       driveLink: body.driveLink || undefined,
       notes: body.notes || undefined,
+      campaign,
     });
 
     return new Response(JSON.stringify({ ok: true }), {

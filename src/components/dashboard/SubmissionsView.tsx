@@ -80,7 +80,7 @@ export function SubmissionsView({ userRole, creators, activeCreatorIds }: Props)
     if (isSubmitting) return;
     const fd = new FormData(e.currentTarget);
     const creatorId = fd.get('creatorId') as string;
-    const platform = fd.get('platform') as 'TikTok' | 'Instagram' | 'YouTube' | 'Facebook';
+    const platform = fd.get('platform') as 'TikTok' | 'Instagram' | 'YouTube' | 'Facebook' | 'Twitter' | 'Threads';
     const contentUrl = (fd.get('contentUrl') as string).trim();
     const campaign = (fd.get('campaign') as string).trim() || undefined;
     const affiliateLink = (fd.get('affiliateLink') as string).trim() || undefined;
@@ -347,6 +347,8 @@ export function SubmissionsView({ userRole, creators, activeCreatorIds }: Props)
                         <option value="Instagram">Instagram</option>
                         <option value="YouTube">YouTube</option>
                         <option value="Facebook">Facebook</option>
+                        <option value="Twitter">Twitter / X</option>
+                        <option value="Threads">Threads</option>
                       </select>
                     </div>
                   </div>

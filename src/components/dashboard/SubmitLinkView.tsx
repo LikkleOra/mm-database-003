@@ -115,6 +115,7 @@ export function SubmitLinkView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
         datePosted: datePosted || undefined,
         driveLink: driveLink.trim() || undefined,
         notes: notes.trim() || undefined,
+        campaign,
       });
       setSuccessCount((n) => n + 1);
       setSelectedCreatorId(null);

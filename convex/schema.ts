@@ -89,7 +89,7 @@ export default defineSchema({
     contentUrl: v.string(),
     datePosted: v.optional(v.string()),
     driveLink: v.optional(v.string()),
-    campaign: v.optional(v.string()),
+    campaign: v.optional(v.union(v.literal("Afina"), v.literal("Sigma"))),
     affiliateLink: v.optional(v.string()),
     notes: v.optional(v.string()),
     status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected")),
