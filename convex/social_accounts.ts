@@ -9,7 +9,8 @@ export const create = mutation({
       v.literal("Instagram"),
       v.literal("YouTube"),
       v.literal("Facebook"),
-      v.literal("Twitch")
+      v.literal("Twitch"),
+      v.literal("Threads")
     ),
     handle: v.string(),
     url: v.string(),

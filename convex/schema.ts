@@ -38,7 +38,7 @@ export default defineSchema({
 
   social_accounts: defineTable({
     creatorId: v.id("creators"),
-    platform: v.union(v.literal("TikTok"), v.literal("Instagram"), v.literal("YouTube"), v.literal("Facebook"), v.literal("Twitch")),
+    platform: v.union(v.literal("TikTok"), v.literal("Instagram"), v.literal("YouTube"), v.literal("Facebook"), v.literal("Twitch"), v.literal("Threads")),
     handle: v.string(),
     url: v.string(),
   }).index("by_creator", ["creatorId"]),

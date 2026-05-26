@@ -10,7 +10,7 @@ import type { Id } from '../../../convex/_generated/dataModel';
 import { Creator, Activity, Tier } from '../../types';
 import {
   X, Plus, MessageSquare, Clock, ExternalLink, ChevronRight,
-  AlertCircle, Calendar, Video, Instagram, Youtube, Pencil, Check, Trash2,
+  AlertCircle, Calendar, Video, Instagram, Youtube, Pencil, Check, Trash2, Hash,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -23,7 +23,7 @@ interface CreatorDetailProps {
 }
 
 const TIERS: Tier[] = ['Bronze', 'Silver', 'Gold', 'Platinum'];
-const PLATFORMS = ['TikTok', 'Instagram', 'YouTube', 'Facebook', 'Twitch'] as const;
+const PLATFORMS = ['TikTok', 'Instagram', 'YouTube', 'Facebook', 'Twitch', 'Threads'] as const;
 
 type MetricsState = {
   mtd: { gmv: number; posts: number; lives: number; orders: number };
@@ -471,6 +471,7 @@ export function CreatorDetail({ creator, activities, userRole, onClose, onAddAct
                     {acc.platform === 'YouTube' && <Youtube className="w-5 h-5 group-hover:scale-110 transition-transform" />}
                     {acc.platform === 'Twitch' && <ChevronRight className="w-5 h-5 group-hover:scale-110 transition-transform" />}
                     {acc.platform === 'Facebook' && <ExternalLink className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                    {acc.platform === 'Threads' && <Hash className="w-5 h-5 group-hover:scale-110 transition-transform" />}
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{acc.platform}</p>

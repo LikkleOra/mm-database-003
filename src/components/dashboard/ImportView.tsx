@@ -10,7 +10,7 @@ import Papa from 'papaparse';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Platform = 'TikTok' | 'Instagram' | 'YouTube' | 'Facebook';
+type Platform = 'TikTok' | 'Instagram' | 'YouTube' | 'Facebook' | 'Threads';
 type ImportMode = 'creators' | 'submissions';
 type Step = 'upload' | 'preview' | 'done';
 
@@ -198,7 +198,7 @@ function parseSubmissionRows(rows: string[][]): ParsedSubmission[] {
     if (colPlatform !== -1) {
       const rawPlatform = raw(colPlatform);
       const platformMap: Record<string, Platform> = {
-        youtube: 'YouTube', tiktok: 'TikTok', instagram: 'Instagram', facebook: 'Facebook',
+        youtube: 'YouTube', tiktok: 'TikTok', instagram: 'Instagram', facebook: 'Facebook', threads: 'Threads',
         yt: 'YouTube', tt: 'TikTok', ig: 'Instagram', fb: 'Facebook',
       };
       platform = platformMap[rawPlatform.toLowerCase()] ?? null;

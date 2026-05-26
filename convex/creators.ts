@@ -203,6 +203,7 @@ export const bulkImport = mutation({
           v.literal("YouTube"),
           v.literal("Facebook"),
           v.literal("Twitch"),
+          v.literal("Threads"),
         ),
         handle: v.string(),
         url: v.string(),
