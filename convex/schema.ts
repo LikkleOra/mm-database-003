@@ -126,4 +126,43 @@ export default defineSchema({
   })
     .index("by_creator", ["creatorId"])
     .index("by_status", ["status"]),
+
+  video_analytics_snapshots: defineTable({
+    submissionId: v.id("submissions"),
+    creatorId: v.id("creators"),
+    campaign: v.optional(v.union(v.literal("Afina"), v.literal("Sigma"))),
+    platform: v.union(
+      v.literal("TikTok"), v.literal("Instagram"), v.literal("YouTube"),
+      v.literal("Facebook"), v.literal("Twitter"), v.literal("Threads"),
+    ),
+    contentType: v.optional(v.union(
+      v.literal("talking_head"), v.literal("ai_content"), v.literal("slides"),
+    )),
+    snapshotLabel: v.union(
+      v.literal("24h"), v.literal("7d"), v.literal("30d"), v.literal("custom"),
+    ),
+    snapshotDate: v.string(),
+    views:                v.optional(v.number()),
+    likes:                v.optional(v.number()),
+    comments:             v.optional(v.number()),
+    shares:               v.optional(v.number()),
+    saves:                v.optional(v.number()),
+    watchTime:            v.optional(v.number()),
+    averageWatchDuration: v.optional(v.number()),
+    completionRate:       v.optional(v.number()),
+    clicks:               v.optional(v.number()),
+    orders:               v.optional(v.number()),
+    revenue:              v.optional(v.number()),
+    proofDriveLink: v.string(),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected")),
+    reviewNote:  v.optional(v.string()),
+    reviewedBy:  v.optional(v.string()),
+    submittedBy: v.string(),
+    submittedAt: v.string(),
+    reviewedAt:  v.optional(v.string()),
+  })
+    .index("by_submission", ["submissionId"])
+    .index("by_creator",    ["creatorId"])
+    .index("by_status",     ["status"])
+    .index("by_campaign",   ["campaign"]),
 });
