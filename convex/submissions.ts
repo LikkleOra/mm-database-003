@@ -41,12 +41,17 @@ export const list = query({
           reviewedBy: s.reviewedBy,
           submittedAt: s.submittedAt,
           contentTags: s.contentTags ?? [],
+          contentType: s.contentType,
           discordUserId: s.discordUserId,
         };
       })
     );
   },
 });
+
+const contentTypeValidator = v.optional(
+  v.union(v.literal("talking_head"), v.literal("ai_content"), v.literal("slides"))
+);
 
 const platformValidator = v.union(
   v.literal("TikTok"),
@@ -66,6 +71,7 @@ export const createInternal = internalMutation({
     datePosted: v.optional(v.string()),
     driveLink: v.optional(v.string()),
     campaign: v.optional(v.union(v.literal("Afina"), v.literal("Sigma"))),
+    contentType: contentTypeValidator,
     affiliateLink: v.optional(v.string()),
     notes: v.optional(v.string()),
     discordUserId: v.optional(v.string()),
@@ -87,6 +93,7 @@ export const create = mutation({
     datePosted: v.optional(v.string()),
     driveLink: v.optional(v.string()),
     campaign: v.optional(v.union(v.literal("Afina"), v.literal("Sigma"))),
+    contentType: contentTypeValidator,
     affiliateLink: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
@@ -136,6 +143,7 @@ export const bulkImport = mutation({
       creatorDiscordHandle: v.string(),
       contentUrl: v.string(),
       platform: platformValidator,
+      contentType: contentTypeValidator,
       notes: v.optional(v.string()),
     })),
   },
@@ -163,6 +171,7 @@ export const bulkImport = mutation({
         platform: sub.platform,
         contentUrl: sub.contentUrl,
         notes: sub.notes,
+        contentType: sub.contentType,
         campaign: args.campaign,
         status: "pending",
         submittedAt: new Date().toISOString(),

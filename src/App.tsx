@@ -310,7 +310,7 @@ function AuthenticatedApp() {
 
         {activeView === 'reports' && <ReportsView creators={creators} />}
         {activeView === 'settings' && <SettingsView />}
-        {activeView === 'videos' && <VideosView userRole={userRole} creators={creators} />}
+        {activeView === 'videos' && <VideosView userRole={userRole} creators={creators} activeCampaign={activeCampaign} />}
         {activeView === 'discord' && <DiscordTrackingView creators={creators} userRole={userRole} />}
         {activeView === 'youtube' && <YouTubeView userRole={userRole} creators={creators} />}
         {activeView === 'submissions' && <SubmissionsView userRole={userRole} creators={creators} activeCreatorIds={activeCreatorIds} />}

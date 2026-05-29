@@ -7,24 +7,54 @@ export const list = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
 
-    const videos = await ctx.db.query("videos").order("desc").collect();
-    return Promise.all(
-      videos.map(async (video) => {
-        const creator = await ctx.db.get(video.creatorId);
-        return {
-          id: video._id as string,
-          title: video.title,
-          creatorName: creator?.name ?? "Unknown",
-          platform: video.platform,
-          views: video.views,
-          revenue: video.revenue ?? 0,
-          status: video.status,
-          thumbnailUrl: video.thumbnailUrl,
-          recordedAt: video.recordedAt,
-          externalId: video.externalId,
-          statsRefreshedAt: video.statsRefreshedAt,
-        };
-      })
+    const [videos, submissions] = await Promise.all([
+      ctx.db.query("videos").order("desc").collect(),
+      ctx.db.query("submissions").order("desc").collect(),
+    ]);
+
+    const allCreators = await ctx.db.query("creators").collect();
+    const creatorMap = new Map(allCreators.map((c) => [c._id as string, c.name]));
+
+    const videoItems = videos.map((video) => ({
+      id: video._id as string,
+      sourceType: "video" as const,
+      title: video.title,
+      creatorId: video.creatorId as string,
+      creatorName: creatorMap.get(video.creatorId as string) ?? "Unknown",
+      platform: video.platform as string,
+      contentUrl: video.externalId ?? "",
+      status: video.status,
+      contentType: video.contentType as "talking_head" | "ai_content" | "slides" | undefined,
+      campaign: undefined as "Afina" | "Sigma" | undefined,
+      thumbnailUrl: video.thumbnailUrl,
+      views: video.views,
+      revenue: video.revenue ?? 0,
+      recordedAt: video.recordedAt,
+      externalId: video.externalId,
+      statsRefreshedAt: video.statsRefreshedAt,
+    }));
+
+    const submissionItems = submissions.map((sub) => ({
+      id: sub._id as string,
+      sourceType: "submission" as const,
+      title: `${sub.platform} post`,
+      creatorId: sub.creatorId as string,
+      creatorName: creatorMap.get(sub.creatorId as string) ?? "Unknown",
+      platform: sub.platform as string,
+      contentUrl: sub.contentUrl,
+      status: sub.status,
+      contentType: sub.contentType as "talking_head" | "ai_content" | "slides" | undefined,
+      campaign: sub.campaign as "Afina" | "Sigma" | undefined,
+      thumbnailUrl: undefined as string | undefined,
+      views: 0,
+      revenue: 0,
+      recordedAt: sub.submittedAt,
+      externalId: undefined as string | undefined,
+      statsRefreshedAt: undefined as string | undefined,
+    }));
+
+    return [...videoItems, ...submissionItems].sort(
+      (a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime()
     );
   },
 });
@@ -42,6 +72,7 @@ export const create = mutation({
     views: v.number(),
     revenue: v.optional(v.number()),
     thumbnailUrl: v.optional(v.string()),
+    contentType: v.optional(v.union(v.literal("talking_head"), v.literal("ai_content"), v.literal("slides"))),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -62,6 +93,7 @@ export const create = mutation({
       views: args.views,
       revenue: args.revenue,
       thumbnailUrl: args.thumbnailUrl,
+      contentType: args.contentType,
       status: "done",
       recordedAt: new Date().toISOString(),
     });

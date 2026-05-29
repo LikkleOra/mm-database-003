@@ -11,32 +11,57 @@ import { Creator } from '../../types';
 import { Play, Eye, DollarSign, MoreVertical, ExternalLink, Search, ChevronDown, Video, Plus, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-const PLATFORMS = ['All', 'TikTok', 'Instagram', 'YouTube', 'Facebook'] as const;
+const PLATFORMS = ['All', 'TikTok', 'Instagram', 'YouTube', 'Facebook', 'Twitter', 'Threads'] as const;
 type VideoPlatform = 'TikTok' | 'Instagram' | 'YouTube' | 'Facebook';
 
+const CONTENT_TYPE_TABS = [
+  { id: 'all',          label: 'All' },
+  { id: 'talking_head', label: 'Talking Head' },
+  { id: 'ai_content',   label: 'AI Content' },
+  { id: 'slides',       label: 'Slides' },
+] as const;
+
+const STATUS_TABS = [
+  { id: 'all',      label: 'All' },
+  { id: 'pending',  label: 'Pending' },
+  { id: 'approved', label: 'Approved' },
+  { id: 'rejected', label: 'Rejected' },
+] as const;
+
 const PLATFORM_COLORS: Record<string, string> = {
-  TikTok: 'bg-pink-500/10 border-pink-500/20 text-pink-400',
+  TikTok:    'bg-pink-500/10 border-pink-500/20 text-pink-400',
   Instagram: 'bg-purple-500/10 border-purple-500/20 text-purple-400',
-  YouTube: 'bg-red-500/10 border-red-500/20 text-red-400',
-  Facebook: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
+  YouTube:   'bg-red-500/10 border-red-500/20 text-red-400',
+  Facebook:  'bg-blue-500/10 border-blue-500/20 text-blue-400',
+  Twitter:   'bg-sky-500/10 border-sky-500/20 text-sky-400',
+  Threads:   'bg-zinc-700/30 border-zinc-600/30 text-zinc-400',
+};
+
+const CONTENT_TYPE_LABELS: Record<string, string> = {
+  talking_head: 'Talking Head',
+  ai_content:   'AI Content',
+  slides:       'Slides',
 };
 
 interface VideosViewProps {
   userRole: 'admin' | 'manager' | 'viewer';
   creators: Creator[];
+  activeCampaign: 'Afina' | 'Sigma';
 }
 
-export function VideosView({ userRole, creators }: VideosViewProps) {
+export function VideosView({ userRole, creators, activeCampaign }: VideosViewProps) {
   const videosData = useQuery(api.videos.list);
   const createVideo = useMutation(api.videos.create);
   const refreshVideo = useAction(api.youtube.refreshVideo);
   const logVideoByUrl = useAction(api.youtube.logVideoByUrl);
 
   const isLoading = videosData === undefined;
-  const videos = videosData ?? [];
+  const allItems = videosData ?? [];
 
   const [search, setSearch] = useState('');
   const [platform, setPlatform] = useState<string>('All');
+  const [contentTypeFilter, setContentTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showPlatformMenu, setShowPlatformMenu] = useState(false);
 
   const [showLogModal, setShowLogModal] = useState(false);
@@ -52,12 +77,15 @@ export function VideosView({ userRole, creators }: VideosViewProps) {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return videos.filter((v) => {
-      const matchesSearch = !q || v.title.toLowerCase().includes(q) || v.creatorName.toLowerCase().includes(q);
-      const matchesPlatform = platform === 'All' || v.platform === platform;
-      return matchesSearch && matchesPlatform;
+    return allItems.filter((item) => {
+      if (item.sourceType === 'submission' && item.campaign && item.campaign !== activeCampaign) return false;
+      const matchesSearch = !q || item.title.toLowerCase().includes(q) || item.creatorName.toLowerCase().includes(q);
+      const matchesPlatform = platform === 'All' || item.platform === platform;
+      const matchesContentType = contentTypeFilter === 'all' || item.contentType === contentTypeFilter;
+      const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+      return matchesSearch && matchesPlatform && matchesContentType && matchesStatus;
     });
-  }, [videos, search, platform]);
+  }, [allItems, search, platform, contentTypeFilter, statusFilter, activeCampaign]);
 
   async function handleRefresh(videoId: string) {
     if (refreshingId) return;
@@ -134,6 +162,15 @@ export function VideosView({ userRole, creators }: VideosViewProps) {
     }
   };
 
+  function getStatusBadgeClass(status: string) {
+    if (status === 'pending')   return 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400';
+    if (status === 'approved')  return 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400';
+    if (status === 'rejected')  return 'bg-red-500/10 border-red-500/20 text-red-400';
+    if (status === 'done')      return 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400';
+    if (status === 'processing') return 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400';
+    return 'bg-zinc-800 border-zinc-700 text-zinc-500';
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -144,7 +181,7 @@ export function VideosView({ userRole, creators }: VideosViewProps) {
           <div>
             <h2 className="text-xl font-bold text-zinc-100 tracking-tight">Content Explorer</h2>
             <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest mt-0.5">
-              {isLoading ? 'Loading...' : `${videos.length} videos tracked`}
+              {isLoading ? 'Loading...' : `${filtered.length} items`}
             </p>
           </div>
         </div>
@@ -199,6 +236,41 @@ export function VideosView({ userRole, creators }: VideosViewProps) {
         </div>
       </div>
 
+      {/* Content type + status filters */}
+      <div className="flex items-center gap-6 flex-wrap">
+        <div className="flex items-center gap-1">
+          {CONTENT_TYPE_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setContentTypeFilter(tab.id)}
+              className={`px-3 h-8 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border ${
+                contentTypeFilter === tab.id
+                  ? 'bg-lime-300/10 border-lime-300/30 text-lime-300'
+                  : 'bg-transparent border-zinc-800 text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className="w-px h-6 bg-zinc-800" />
+        <div className="flex items-center gap-1">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setStatusFilter(tab.id)}
+              className={`px-3 h-8 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border ${
+                statusFilter === tab.id
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-transparent border-zinc-800 text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Loading skeleton */}
       {isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -215,42 +287,42 @@ export function VideosView({ userRole, creators }: VideosViewProps) {
       )}
 
       {/* Empty state */}
-      {!isLoading && videos.length === 0 && (
+      {!isLoading && allItems.length === 0 && (
         <div className="flex flex-col items-center justify-center h-[50vh] text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/20">
           <div className="w-16 h-16 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-center mb-4">
             <Video className="w-7 h-7 text-zinc-600" />
           </div>
-          <h3 className="text-lg font-bold text-zinc-400 tracking-tight">No videos tracked yet</h3>
+          <h3 className="text-lg font-bold text-zinc-400 tracking-tight">No content yet</h3>
           <p className="text-zinc-600 text-sm mt-2 max-w-sm font-medium">
-            {canWrite ? 'Use "Log Video" to add the first entry.' : 'Videos will appear here once content is submitted.'}
+            {canWrite ? 'Use "Log Video" to add the first entry, or submit content via the Submit tab.' : 'Content will appear here once creators submit posts.'}
           </p>
         </div>
       )}
 
       {/* No filter results */}
-      {!isLoading && videos.length > 0 && filtered.length === 0 && (
+      {!isLoading && allItems.length > 0 && filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center h-40 text-center">
-          <p className="text-zinc-500 text-sm font-medium">No videos match your search or filter.</p>
-          <button onClick={() => { setSearch(''); setPlatform('All'); }} className="mt-2 text-emerald-500 text-xs font-bold hover:text-emerald-400">
+          <p className="text-zinc-500 text-sm font-medium">No content matches your filters.</p>
+          <button onClick={() => { setSearch(''); setPlatform('All'); setContentTypeFilter('all'); setStatusFilter('all'); }} className="mt-2 text-emerald-500 text-xs font-bold hover:text-emerald-400">
             Clear filters
           </button>
         </div>
       )}
 
-      {/* Video grid */}
+      {/* Content grid */}
       {!isLoading && filtered.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((video, idx) => (
+          {filtered.map((item, idx) => (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05 }}
-              key={video.id}
+              transition={{ delay: idx * 0.04 }}
+              key={item.id}
               className="bg-zinc-900/40 border border-zinc-800 rounded-2xl overflow-hidden group cursor-pointer hover:border-zinc-700 transition-all"
             >
               <div className="relative aspect-video bg-zinc-950 flex items-center justify-center">
-                {video.thumbnailUrl ? (
-                  <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover" />
+                {item.thumbnailUrl ? (
+                  <img src={item.thumbnailUrl} alt={item.title} className="w-full h-full object-cover" />
                 ) : (
                   <Video className="w-10 h-10 text-zinc-700" />
                 )}
@@ -259,22 +331,23 @@ export function VideosView({ userRole, creators }: VideosViewProps) {
                     <Play className="w-6 h-6 fill-current" />
                   </div>
                 </div>
-                <div className={`absolute top-3 left-3 px-2 py-1 rounded-md text-[9px] font-bold border uppercase tracking-widest ${PLATFORM_COLORS[video.platform] ?? 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>
-                  {video.platform}
+                <div className={`absolute top-3 left-3 px-2 py-1 rounded-md text-[9px] font-bold border uppercase tracking-widest ${PLATFORM_COLORS[item.platform] ?? 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>
+                  {item.platform}
                 </div>
-                <div className={`absolute top-3 right-3 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border ${
-                  video.status === 'done' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
-                  video.status === 'processing' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' :
-                  'bg-zinc-800 border-zinc-700 text-zinc-500'
-                }`}>
-                  {video.status}
+                <div className={`absolute top-3 right-3 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border ${getStatusBadgeClass(item.status)}`}>
+                  {item.status}
                 </div>
+                {item.contentType && (
+                  <div className="absolute bottom-3 left-3 px-2 py-1 rounded-md text-[9px] font-bold bg-lime-300/20 border border-lime-300/30 text-lime-300 uppercase tracking-widest">
+                    {CONTENT_TYPE_LABELS[item.contentType]}
+                  </div>
+                )}
               </div>
               <div className="p-5">
                 <div className="flex items-start justify-between mb-2">
                   <div className="min-w-0">
-                    <h3 className="font-bold text-zinc-100 truncate group-hover:text-emerald-400 transition-colors">{video.title}</h3>
-                    <p className="text-xs text-zinc-500 font-medium">by {video.creatorName}</p>
+                    <h3 className="font-bold text-zinc-100 truncate group-hover:text-emerald-400 transition-colors">{item.title}</h3>
+                    <p className="text-xs text-zinc-500 font-medium">by {item.creatorName}</p>
                   </div>
                   <button className="p-1 hover:bg-zinc-800 rounded-md text-zinc-500 shrink-0">
                     <MoreVertical className="w-4 h-4" />
@@ -282,34 +355,38 @@ export function VideosView({ userRole, creators }: VideosViewProps) {
                 </div>
                 <div className="flex items-center justify-between mt-4 border-t border-zinc-800 pt-3">
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1.5">
-                      <Eye className="w-3.5 h-3.5 text-zinc-500" />
-                      <span className="text-[10px] font-bold text-zinc-500">{video.views.toLocaleString()}</span>
-                    </div>
-                    {video.revenue > 0 && (
+                    {item.views > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <Eye className="w-3.5 h-3.5 text-zinc-500" />
+                        <span className="text-[10px] font-bold text-zinc-500">{item.views.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {item.revenue > 0 && (
                       <div className="flex items-center gap-1.5">
                         <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
-                        <span className="text-[10px] font-bold text-emerald-500">${video.revenue.toLocaleString()}</span>
+                        <span className="text-[10px] font-bold text-emerald-500">${item.revenue.toLocaleString()}</span>
                       </div>
                     )}
                   </div>
                   <div className="flex items-center gap-1">
-                    {video.platform === 'YouTube' && canWrite && (
+                    {item.platform === 'YouTube' && item.sourceType === 'video' && canWrite && (
                       <button
-                        onClick={() => handleRefresh(video.id)}
-                        disabled={refreshingId === video.id}
+                        onClick={() => handleRefresh(item.id)}
+                        disabled={refreshingId === item.id}
                         className="p-1.5 hover:bg-zinc-800 rounded-md text-zinc-500 hover:text-red-400 transition-colors disabled:opacity-40"
                         title="Refresh YouTube stats"
                       >
-                        <RefreshCw className={`w-3.5 h-3.5 ${refreshingId === video.id ? 'animate-spin text-red-400' : ''}`} />
+                        <RefreshCw className={`w-3.5 h-3.5 ${refreshingId === item.id ? 'animate-spin text-red-400' : ''}`} />
                       </button>
                     )}
-                    <button className="p-1.5 hover:bg-zinc-800 rounded-md text-zinc-500 hover:text-zinc-100">
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </button>
+                    {item.contentUrl && (
+                      <a href={item.contentUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-zinc-800 rounded-md text-zinc-500 hover:text-zinc-100">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
                   </div>
                 </div>
-                {refreshError && refreshingId === null && video.platform === 'YouTube' && (
+                {refreshError && refreshingId === null && item.platform === 'YouTube' && (
                   <p className="text-[9px] text-red-400 font-bold mt-1">{refreshError}</p>
                 )}
               </div>

@@ -31,10 +31,13 @@ interface ParsedCreator {
   _row: number;
 }
 
+type ContentType = 'talking_head' | 'ai_content' | 'slides';
+
 interface ParsedSubmission {
   creatorDiscordHandle: string;
   contentUrl: string;
   platform: Platform;
+  contentType?: ContentType;
   notes?: string;
   _row: number;
   _error?: string;
@@ -174,10 +177,17 @@ function parseSubmissionRows(rows: string[][]): ParsedSubmission[] {
   if (headerIdx === -1) return [];
 
   const col = (names: string[]) => headers.findIndex((h) => names.some((n) => h.includes(n)));
-  const colLink     = col(['link', 'url', 'content url', 'video']);
-  const colCreator  = col(['creator', 'discord', 'handle', 'username']);
-  const colPlatform = col(['platform']);
-  const colNotes    = col(['notes', 'description', 'comment']);
+  const colLink        = col(['link', 'url', 'content url', 'video']);
+  const colCreator     = col(['creator', 'discord', 'handle', 'username']);
+  const colPlatform    = col(['platform']);
+  const colContentType = col(['content type', 'contenttype', 'type', 'category', 'format']);
+  const colNotes       = col(['notes', 'description', 'comment']);
+
+  const contentTypeMap: Record<string, ContentType> = {
+    'talking head': 'talking_head', 'talking_head': 'talking_head', 'talkinghead': 'talking_head',
+    'ai content': 'ai_content',    'ai_content': 'ai_content',     'ai': 'ai_content',
+    'slides': 'slides',             'slide': 'slides',
+  };
 
   if (colLink === -1 || colCreator === -1) return [];
 
@@ -205,10 +215,14 @@ function parseSubmissionRows(rows: string[][]): ParsedSubmission[] {
     }
     if (!platform) platform = detectPlatform(contentUrl);
 
+    const contentType: ContentType | undefined = colContentType !== -1
+      ? contentTypeMap[raw(colContentType).toLowerCase()] ?? undefined
+      : undefined;
+
     if (!platform) {
-      results.push({ creatorDiscordHandle: handle, contentUrl, platform: 'TikTok', notes: raw(colNotes) || undefined, _row: i + 1, _error: 'Unknown platform — defaulted to TikTok' });
+      results.push({ creatorDiscordHandle: handle, contentUrl, platform: 'TikTok', contentType, notes: raw(colNotes) || undefined, _row: i + 1, _error: 'Unknown platform — defaulted to TikTok' });
     } else {
-      results.push({ creatorDiscordHandle: handle, contentUrl, platform, notes: raw(colNotes) || undefined, _row: i + 1 });
+      results.push({ creatorDiscordHandle: handle, contentUrl, platform, contentType, notes: raw(colNotes) || undefined, _row: i + 1 });
     }
   }
 
@@ -297,8 +311,8 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
         const result = await bulkImportCreators({ campaign, creators: payload });
         setImportResult(result);
       } else {
-        const payload = parsedSubmissions.map(({ creatorDiscordHandle, contentUrl, platform, notes }) => ({
-          creatorDiscordHandle, contentUrl, platform, notes,
+        const payload = parsedSubmissions.map(({ creatorDiscordHandle, contentUrl, platform, contentType, notes }) => ({
+          creatorDiscordHandle, contentUrl, platform, contentType, notes,
         }));
         const result = await bulkImportSubmissions({ campaign, submissions: payload });
         setImportResult(result);

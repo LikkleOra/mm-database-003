@@ -8,6 +8,13 @@ import { motion, AnimatePresence } from 'motion/react';
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Platform = 'TikTok' | 'Instagram' | 'YouTube' | 'Facebook' | 'Twitter' | 'Threads';
+type ContentType = 'talking_head' | 'ai_content' | 'slides';
+
+const CONTENT_TYPES: { id: ContentType; label: string }[] = [
+  { id: 'talking_head', label: 'Talking Head' },
+  { id: 'ai_content',   label: 'AI Content' },
+  { id: 'slides',       label: 'Slides' },
+];
 
 const PLATFORMS: { id: Platform; label: string }[] = [
   { id: 'TikTok',    label: 'TikTok' },
@@ -66,6 +73,11 @@ const FIELDS: FieldDef[] = [
     placeholder: 'First collab, boosted post, tried a new hook...',
     note: 'Anything the admin should know. Context that won\'t show in the numbers.',
   },
+  {
+    id: 7, key: 'contentType', label: 'Content Type', type: 'MULTIPLE CHOICE',
+    required: true, icon: '◑',
+    note: 'What format is this post? Talking Head = creator on camera. AI Content = AI-generated or AI-assisted. Slides = slideshow / carousel.',
+  },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -79,6 +91,7 @@ export function SubmitLinkView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
   const [creatorSearch, setCreatorSearch]           = useState('');
   const [showDropdown, setShowDropdown]             = useState(false);
   const [platform, setPlatform]                     = useState<Platform | null>(null);
+  const [contentType, setContentType]               = useState<ContentType | null>(null);
   const [contentUrl, setContentUrl]                 = useState('');
   const [datePosted, setDatePosted]                 = useState('');
   const [driveLink, setDriveLink]                   = useState('');
@@ -99,11 +112,11 @@ export function SubmitLinkView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
       )
     : creators.slice(0, 8);
 
-  const isValid = !!selectedCreatorId && !!platform && contentUrl.trim() && datePosted.trim();
+  const isValid = !!selectedCreatorId && !!platform && !!contentType && contentUrl.trim() && datePosted.trim();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isValid || !selectedCreatorId || !platform) return;
+    if (!isValid || !selectedCreatorId || !platform || !contentType) return;
 
     setIsSubmitting(true);
     setError(null);
@@ -116,11 +129,13 @@ export function SubmitLinkView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
         driveLink: driveLink.trim() || undefined,
         notes: notes.trim() || undefined,
         campaign,
+        contentType,
       });
       setSuccessCount((n) => n + 1);
       setSelectedCreatorId(null);
       setCreatorSearch('');
       setPlatform(null);
+      setContentType(null);
       setContentUrl('');
       setDatePosted('');
       setDriveLink('');
@@ -142,7 +157,8 @@ export function SubmitLinkView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
       case 'contentUrl':  return !!contentUrl.trim();
       case 'datePosted':  return !!datePosted.trim();
       case 'driveLink':   return !!driveLink.trim();
-      case 'notes':       return !!notes.trim();
+      case 'notes':        return !!notes.trim();
+      case 'contentType':  return !!contentType;
       default: return false;
     }
   }
@@ -278,6 +294,26 @@ export function SubmitLinkView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
           />
         );
 
+      case 'contentType':
+        return (
+          <div className="flex flex-wrap gap-2">
+            {CONTENT_TYPES.map((ct) => (
+              <button
+                key={ct.id}
+                type="button"
+                onClick={() => setContentType(ct.id)}
+                className={`px-3 h-8 rounded-lg text-[11px] font-bold border tracking-wide transition-all ${
+                  contentType === ct.id
+                    ? 'bg-lime-300/10 border-lime-300/40 text-lime-300'
+                    : 'bg-transparent border-zinc-800 text-zinc-600 hover:border-zinc-600 hover:text-zinc-400'
+                }`}
+              >
+                {ct.label}
+              </button>
+            ))}
+          </div>
+        );
+
       default: return null;
     }
   }
@@ -399,7 +435,7 @@ export function SubmitLinkView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
         {/* Footer */}
         <div className="flex items-center justify-between pt-6 border-t border-zinc-900">
           <span className="text-[11px] text-zinc-700 tracking-[0.1em] uppercase">
-            4 REQUIRED · 2 OPTIONAL
+            5 REQUIRED · 2 OPTIONAL
           </span>
           <button
             type="submit"

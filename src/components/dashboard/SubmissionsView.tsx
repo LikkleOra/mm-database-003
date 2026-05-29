@@ -82,7 +82,10 @@ export function SubmissionsView({ userRole, creators, activeCreatorIds }: Props)
     const creatorId = fd.get('creatorId') as string;
     const platform = fd.get('platform') as 'TikTok' | 'Instagram' | 'YouTube' | 'Facebook' | 'Twitter' | 'Threads';
     const contentUrl = (fd.get('contentUrl') as string).trim();
-    const campaign = (fd.get('campaign') as string).trim() || undefined;
+    const campaignRaw = (fd.get('campaign') as string).trim();
+    const campaign = (campaignRaw === 'Afina' || campaignRaw === 'Sigma') ? campaignRaw : undefined;
+    const contentTypeRaw = (fd.get('contentType') as string).trim();
+    const contentType = (['talking_head', 'ai_content', 'slides'].includes(contentTypeRaw) ? contentTypeRaw : undefined) as 'talking_head' | 'ai_content' | 'slides' | undefined;
     const affiliateLink = (fd.get('affiliateLink') as string).trim() || undefined;
     const notes = (fd.get('notes') as string).trim() || undefined;
 
@@ -94,7 +97,7 @@ export function SubmissionsView({ userRole, creators, activeCreatorIds }: Props)
     setSubmitError(null);
     setIsSubmitting(true);
     try {
-      await createSubmission({ creatorId: creatorId as Id<'creators'>, platform, contentUrl, campaign, affiliateLink, notes });
+      await createSubmission({ creatorId: creatorId as Id<'creators'>, platform, contentUrl, campaign, contentType, affiliateLink, notes });
       setShowSubmitModal(false);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Failed to submit.');
@@ -238,6 +241,11 @@ export function SubmissionsView({ userRole, creators, activeCreatorIds }: Props)
                     }`}>
                       {sub.status}
                     </span>
+                    {(sub as any).contentType && (
+                      <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-lime-300/10 border border-lime-300/20 text-lime-300 uppercase tracking-widest">
+                        {(sub as any).contentType === 'talking_head' ? 'Talking Head' : (sub as any).contentType === 'ai_content' ? 'AI Content' : 'Slides'}
+                      </span>
+                    )}
                     {sub.contentTags.map((tag) => (
                       <span key={tag} className="px-2 py-0.5 rounded text-[9px] font-bold bg-zinc-800 border border-zinc-700 text-zinc-400">
                         {tag}
@@ -359,12 +367,25 @@ export function SubmissionsView({ userRole, creators, activeCreatorIds }: Props)
                   <div className="grid grid-cols-2 gap-5">
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 px-1">Campaign (optional)</label>
-                      <input name="campaign" type="text" placeholder="e.g. Summer Drop" className="w-full h-12 px-4 bg-zinc-900 border border-zinc-800 rounded-2xl text-sm font-bold text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all placeholder:text-zinc-700" />
+                      <select name="campaign" defaultValue="" className="w-full h-12 px-4 bg-zinc-900 border border-zinc-800 rounded-2xl text-sm font-bold text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 appearance-none cursor-pointer">
+                        <option value="">— none —</option>
+                        <option value="Afina">Afina</option>
+                        <option value="Sigma">Sigma</option>
+                      </select>
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 px-1">Affiliate Link (optional)</label>
                       <input name="affiliateLink" type="url" placeholder="https://..." className="w-full h-12 px-4 bg-zinc-900 border border-zinc-800 rounded-2xl text-sm font-bold text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all placeholder:text-zinc-700" />
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 px-1">Content Type (optional)</label>
+                    <select name="contentType" defaultValue="" className="w-full h-12 px-4 bg-zinc-900 border border-zinc-800 rounded-2xl text-sm font-bold text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 appearance-none cursor-pointer">
+                      <option value="">— unset —</option>
+                      <option value="talking_head">Talking Head</option>
+                      <option value="ai_content">AI Content</option>
+                      <option value="slides">Slides</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 px-1">Notes (optional)</label>

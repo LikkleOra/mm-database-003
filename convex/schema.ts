@@ -46,12 +46,13 @@ export default defineSchema({
   videos: defineTable({
     creatorId: v.id("creators"),
     platform: v.union(v.literal("TikTok"), v.literal("Instagram"), v.literal("YouTube"), v.literal("Facebook")),
-    externalId: v.string(), // ID from the platform
+    externalId: v.string(),
     thumbnailUrl: v.optional(v.string()),
     title: v.string(),
     views: v.number(),
     revenue: v.optional(v.number()),
     status: v.union(v.literal("raw"), v.literal("processing"), v.literal("done")),
+    contentType: v.optional(v.union(v.literal("talking_head"), v.literal("ai_content"), v.literal("slides"))),
     metadata: v.optional(v.any()),
     recordedAt: v.string(),
     statsRefreshedAt: v.optional(v.string()),
@@ -97,6 +98,7 @@ export default defineSchema({
     reviewedBy: v.optional(v.string()),
     submittedAt: v.string(),
     contentTags: v.optional(v.array(v.string())),
+    contentType: v.optional(v.union(v.literal("talking_head"), v.literal("ai_content"), v.literal("slides"))),
     discordUserId: v.optional(v.string()),
   })
     .index("by_creator", ["creatorId"])

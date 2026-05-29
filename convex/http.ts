@@ -61,6 +61,11 @@ http.route({
       ? (body.campaign as "Afina" | "Sigma")
       : undefined;
 
+    const validContentTypes = ["talking_head", "ai_content", "slides"];
+    const contentType = validContentTypes.includes(body.contentType)
+      ? (body.contentType as "talking_head" | "ai_content" | "slides")
+      : undefined;
+
     await ctx.runMutation(internal.submissions.createInternal, {
       creatorId: creator._id,
       platform: platform as "TikTok" | "Instagram" | "YouTube" | "Facebook" | "Twitter" | "Threads",
@@ -69,6 +74,7 @@ http.route({
       driveLink: body.driveLink || undefined,
       notes: body.notes || undefined,
       campaign,
+      contentType,
     });
 
     return new Response(JSON.stringify({ ok: true }), {
