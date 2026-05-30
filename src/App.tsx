@@ -224,7 +224,7 @@ function AuthenticatedApp() {
         onCampaignChange={setActiveCampaign}
       />
 
-      <main className="flex-1 md:ml-64 p-4 md:p-8 min-w-0">
+      <main className="flex-1 md:ml-64 py-4 pr-4 md:py-8 md:pr-8 min-w-0">
         <header className="mb-10 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
