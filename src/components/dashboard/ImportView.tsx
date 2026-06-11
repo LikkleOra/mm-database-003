@@ -360,6 +360,13 @@ export function ImportView({ campaign, initialMode = 'creators' }: { campaign: '
 
   const [mode, setMode]               = useState<ImportMode>(initialMode);
   const [step, setStep]               = useState<Step>('upload');
+
+  // Sync mode when initialMode changes (e.g. navigation from stats portal)
+  React.useEffect(() => {
+    setMode(initialMode);
+    reset();
+  }, [initialMode]);
+
   const [fileName, setFileName]       = useState('');
   const [parseError, setParseError]   = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);

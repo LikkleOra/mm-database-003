@@ -40,30 +40,43 @@ export const bulkImport = mutation({
     let created = 0;
     let updated = 0;
 
-    for (const s of stats) {
-      const normalizedHandle = s.discordHandle.toLowerCase().replace(/^@/, "").trim();
-      
-      // Try to find the creator
-      const creator = await ctx.db
-        .query("creators")
-        .withIndex("by_discord", (q) => q.eq("discordHandle", normalizedHandle))
-        .unique();
+    // Fetch all creators once
+    const allCreators = await ctx.db.query("creators").collect();
+    const creatorsByHandle = new Map(
+      allCreators.map((c) => [c.discordHandle.toLowerCase().replace(/^@/, "").trim(), c._id])
+    );
 
-      // Check for existing stats entry
+    // Group stats by month and period to fetch existing once per group
+    const periods = Array.from(new Set(stats.map(s => `${s.month}|${s.period}`)));
+    const existingStatsMap = new Map<string, Doc<"creator_stats">>();
+
+    for (const p of periods) {
+      const [month, period] = p.split('|');
       const existing = await ctx.db
         .query("creator_stats")
         .withIndex("by_campaign_period_month", (q) => 
           q.eq("campaign", campaign)
-           .eq("period", s.period)
-           .eq("month", s.month)
+           .eq("period", period as "bonus_collection" | "mid_month")
+           .eq("month", month)
         )
-        .filter((q) => q.eq(q.field("discordHandle"), normalizedHandle))
-        .unique();
+        .collect();
+      
+      for (const s of existing) {
+        existingStatsMap.set(`${month}|${period}|${s.discordHandle.toLowerCase()}`, s);
+      }
+    }
+
+    for (const s of stats) {
+      const normalizedHandle = s.discordHandle.toLowerCase().replace(/^@/, "").trim();
+      const creatorId = creatorsByHandle.get(normalizedHandle);
+      
+      const key = `${s.month}|${s.period}|${normalizedHandle}`;
+      const existing = existingStatsMap.get(key);
 
       const data = {
         ...s,
         discordHandle: normalizedHandle,
-        creatorId: creator?._id,
+        creatorId,
         campaign,
         importedAt: new Date().toISOString(),
       };
