@@ -28,6 +28,7 @@ const NAV_ITEMS = [
   { id: 'adshop', label: 'Ad Shop', icon: ShoppingBag },
   { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
   { id: 'payouts', label: 'Payouts', icon: DollarSign },
+  { id: 'stats', label: 'Creator Stats', icon: BarChart3 },
   { id: 'videos', label: 'Videos', icon: Video },
   { id: 'tracker', label: 'Tracker', icon: Target },
   { id: 'discord', label: 'Discord Tracking', icon: MessageSquare },

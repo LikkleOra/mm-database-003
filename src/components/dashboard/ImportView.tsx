@@ -11,7 +11,7 @@ import Papa from 'papaparse';
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Platform = 'TikTok' | 'Instagram' | 'YouTube' | 'Facebook' | 'Threads';
-type ImportMode = 'creators' | 'submissions';
+type ImportMode = 'creators' | 'submissions' | 'stats';
 type Step = 'upload' | 'preview' | 'done';
 
 interface ParsedCreator {
@@ -41,6 +41,26 @@ interface ParsedSubmission {
   notes?: string;
   _row: number;
   _error?: string;
+}
+
+interface ParsedStats {
+  discordHandle: string;
+  month: string;
+  period: 'bonus_collection' | 'mid_month';
+  retainer: number;
+  directOrders: number;
+  indirectOrders: number;
+  totalOrders: number;
+  affiliateClicks: number;
+  totalPosts: number;
+  facebook: { views: number; usViews: number };
+  instagram: { views: number; usViews: number };
+  tiktok: { views: number; usViews: number };
+  threads: { views: number; usViews: number };
+  youtube: { views: number; usViews: number };
+  totalViews: number;
+  totalUsViews: number;
+  _row: number;
 }
 
 // ── File parsing helpers ──────────────────────────────────────────────────────
@@ -229,6 +249,94 @@ function parseSubmissionRows(rows: string[][]): ParsedSubmission[] {
   return results;
 }
 
+// ── Stats parsing ─────────────────────────────────────────────────────────────
+
+function parseStatsRows(rows: string[][]): ParsedStats[] {
+  let headerIdx = -1;
+  let headers: string[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    const lower = rows[i].map((c) => String(c).toLowerCase().trim());
+    if (lower.some((c) => c.includes('creator') || c.includes('discord'))) {
+      headerIdx = i;
+      headers = lower;
+      break;
+    }
+  }
+  if (headerIdx === -1) return [];
+
+  const col = (names: string[]) => headers.findIndex((h) => names.some((n) => h.includes(n)));
+  
+  const colCreator    = col(['creator', 'discord', 'handle']);
+  const colMonth      = col(['month', 'date', 'period']);
+  const colRetainer   = col(['retainer', 'base pay']);
+  const colDirect     = col(['direct order', 'direct_orders']);
+  const colIndirect   = col(['indirect order', 'indirect_orders']);
+  const colTotalOrders = col(['total orders', 'orders']);
+  const colClicks     = col(['clicks', 'affiliate clicks']);
+  const colPosts      = col(['posts', 'total posts']);
+  
+  const colFBViews    = col(['facebook views', 'fb views']);
+  const colFBUS       = col(['facebook us', 'fb us']);
+  const colIGViews    = col(['instagram views', 'ig views']);
+  const colIGUS       = col(['instagram us', 'ig us']);
+  const colTTViews    = col(['tiktok views', 'tt views']);
+  const colTTUS       = col(['tiktok us', 'tt us']);
+  const colTHViews    = col(['threads views', 'th views']);
+  const colTHUS       = col(['threads us', 'th us']);
+  const colYTViews    = col(['youtube views', 'yt views']);
+  const colYTUS       = col(['youtube us', 'yt us']);
+  
+  const colTotalViews = col(['total views']);
+  const colTotalUS    = col(['total us views']);
+
+  if (colCreator === -1) return [];
+
+  const results: ParsedStats[] = [];
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const cols = rows[i];
+    if (!cols.some((c) => String(c).trim())) continue;
+
+    const raw = (idx: number) => (idx >= 0 ? String(cols[idx] ?? '').trim() : '');
+    const num = (idx: number) => {
+      const val = raw(idx).replace(/[$,]/g, '');
+      const parsed = parseFloat(val);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    const handle = raw(colCreator).replace(/^@/, '');
+    if (!handle) continue;
+
+    // Default to current month if missing
+    let month = raw(colMonth);
+    if (!month) {
+      const now = new Date();
+      month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    results.push({
+      discordHandle: handle,
+      month,
+      period: 'bonus_collection', // Default, UI can allow toggle or detect from filename
+      retainer: num(colRetainer),
+      directOrders: num(colDirect),
+      indirectOrders: num(colIndirect),
+      totalOrders: num(colTotalOrders),
+      affiliateClicks: num(colClicks),
+      totalPosts: num(colPosts),
+      facebook: { views: num(colFBViews), usViews: num(colFBUS) },
+      instagram: { views: num(colIGViews), usViews: num(colIGUS) },
+      tiktok: { views: num(colTTViews), usViews: num(colTTUS) },
+      threads: { views: num(colTHViews), usViews: num(colTHUS) },
+      youtube: { views: num(colYTViews), usViews: num(colYTUS) },
+      totalViews: num(colTotalViews),
+      totalUsViews: num(colTotalUS),
+      _row: i + 1,
+    });
+  }
+
+  return results;
+}
+
 // ── Profile cleaner ───────────────────────────────────────────────────────────
 
 function cleanProfile(p: ParsedCreator['profile']): Record<string, string> | undefined {
@@ -246,6 +354,7 @@ const ACCEPT = '.csv';
 export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
   const bulkImportCreators    = useMutation(api.creators.bulkImport);
   const bulkImportSubmissions = useMutation(api.submissions.bulkImport);
+  const bulkImportStats       = useMutation(api.creator_stats.bulkImport);
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -258,7 +367,8 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
 
   const [parsedCreators,    setParsedCreators]    = useState<ParsedCreator[]>([]);
   const [parsedSubmissions, setParsedSubmissions] = useState<ParsedSubmission[]>([]);
-  const [importResult, setImportResult] = useState<{ created: number; skipped: number; errors?: string[] } | null>(null);
+  const [parsedStats,       setParsedStats]       = useState<ParsedStats[]>([]);
+  const [importResult, setImportResult] = useState<{ created: number; updated?: number; skipped?: number; errors?: string[] } | null>(null);
 
   async function handleFile(file: File) {
     const ext = file.name.split('.').pop()?.toLowerCase();
@@ -279,13 +389,27 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
           return;
         }
         setParsedCreators(data);
-      } else {
+      } else if (mode === 'submissions') {
         const data = parseSubmissionRows(rows);
         if (data.length === 0) {
           setParseError('Could not find Link/Creator columns. Expected headers like "Link", "Creator", "Platform".');
           return;
         }
         setParsedSubmissions(data);
+      } else {
+        const data = parseStatsRows(rows);
+        if (data.length === 0) {
+          setParseError('Could not find "Creator" or "Discord" columns. Ensure the sheet has the right headers.');
+          return;
+        }
+        
+        // Detect period from filename if possible
+        const lowerName = file.name.toLowerCase();
+        const period = (lowerName.includes('mid') || lowerName.includes('1-15')) 
+          ? 'mid_month' 
+          : 'bonus_collection';
+        
+        setParsedStats(data.map(d => ({ ...d, period })));
       }
       setStep('preview');
     } catch (err) {
@@ -310,12 +434,16 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
         }));
         const result = await bulkImportCreators({ campaign, creators: payload });
         setImportResult(result);
-      } else {
+      } else if (mode === 'submissions') {
         const payload = parsedSubmissions.map(({ creatorDiscordHandle, contentUrl, platform, contentType, notes }) => ({
           creatorDiscordHandle, contentUrl, platform, contentType, notes,
         }));
         const result = await bulkImportSubmissions({ campaign, submissions: payload });
         setImportResult(result);
+      } else {
+        const payload = parsedStats.map(({ _row, ...s }) => s);
+        const result = await bulkImportStats({ campaign, stats: payload });
+        setImportResult({ created: result.created, updated: result.updated });
       }
       setStep('done');
     } catch (err) {
@@ -330,6 +458,7 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
     setFileName('');
     setParsedCreators([]);
     setParsedSubmissions([]);
+    setParsedStats([]);
     setParseError(null);
     setImportResult(null);
     setImportError(null);
@@ -340,7 +469,11 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
     reset();
   }
 
-  const count = mode === 'creators' ? parsedCreators.length : parsedSubmissions.length;
+  const count = mode === 'creators' 
+    ? parsedCreators.length 
+    : mode === 'submissions' 
+      ? parsedSubmissions.length 
+      : parsedStats.length;
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -367,7 +500,7 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
 
       {/* Mode tabs */}
       <div className="flex gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-xl w-fit">
-        {(['creators', 'submissions'] as ImportMode[]).map((m) => (
+        {(['creators', 'submissions', 'stats'] as ImportMode[]).map((m) => (
           <button
             key={m}
             onClick={() => switchMode(m)}
@@ -377,8 +510,12 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
                 : 'text-zinc-500 hover:text-zinc-100'
             }`}
           >
-            {m === 'creators' ? <Users className="w-3.5 h-3.5" /> : <LinkIcon className="w-3.5 h-3.5" />}
-            {m === 'creators' ? 'Creator Roster' : 'Video Submissions'}
+            {m === 'creators' ? <Users className="w-3.5 h-3.5" /> : 
+             m === 'submissions' ? <LinkIcon className="w-3.5 h-3.5" /> : 
+             <BarChart3 className="w-3.5 h-3.5" />}
+            {m === 'creators' ? 'Creator Roster' : 
+             m === 'submissions' ? 'Video Submissions' : 
+             'Creator Stats'}
           </button>
         ))}
       </div>
@@ -408,17 +545,23 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
           {/* Instructions */}
           <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-2">
             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-              {mode === 'creators' ? 'Expected columns (Creator Roster)' : 'Expected columns (Video Submissions)'}
+              {mode === 'creators' ? 'Expected columns (Creator Roster)' : 
+               mode === 'submissions' ? 'Expected columns (Video Submissions)' : 
+               'Expected columns (Creator Stats)'}
             </p>
             {mode === 'creators' ? (
               <p className="text-xs text-zinc-400 font-medium">
                 <span className="text-emerald-400 font-bold">Creator Name</span> · Real Name · Email · Phone · Location · YouTube · Instagram · TikTok · Facebook · Niche · Content Format · Tone · Posting Frequency
               </p>
-            ) : (
+            ) : mode === 'submissions' ? (
               <p className="text-xs text-zinc-400 font-medium">
                 <span className="text-emerald-400 font-bold">Link</span> (video URL) ·{' '}
                 <span className="text-emerald-400 font-bold">Creator</span> (Discord handle) ·{' '}
                 Platform · Notes
+              </p>
+            ) : (
+              <p className="text-xs text-zinc-400 font-medium">
+                <span className="text-emerald-400 font-bold">Creator</span> (Discord handle) · Month · Retainer · Total Orders · TikTok Views · IG Views · YT Views · Affiliate Clicks · Posts
               </p>
             )}
             <p className="text-[10px] text-zinc-600 font-medium mt-1">
@@ -549,6 +692,44 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
             </div>
           )}
 
+          {/* Preview table — Stats */}
+          {mode === 'stats' && (
+            <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-zinc-800 bg-zinc-900/60">
+                      {['Creator', 'Month', 'Orders', 'Views', 'Retainer', 'Period'].map((h) => (
+                        <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/50">
+                    {parsedStats.slice(0, 50).map((s) => (
+                      <tr key={s._row} className="hover:bg-zinc-800/20 transition-colors">
+                        <td className="px-4 py-2.5 font-bold text-emerald-400 whitespace-nowrap">@{s.discordHandle}</td>
+                        <td className="px-4 py-2.5 text-zinc-200 whitespace-nowrap">{s.month}</td>
+                        <td className="px-4 py-2.5 text-zinc-200 whitespace-nowrap">{s.totalOrders}</td>
+                        <td className="px-4 py-2.5 text-zinc-200 whitespace-nowrap">{s.totalViews.toLocaleString()}</td>
+                        <td className="px-4 py-2.5 text-emerald-400 whitespace-nowrap">${s.retainer}</td>
+                        <td className="px-4 py-2.5">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-zinc-800 border border-zinc-700 text-zinc-400 uppercase">
+                            {s.period.replace('_', ' ')}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {parsedStats.length > 50 && (
+                <div className="px-4 py-3 border-t border-zinc-800 text-center">
+                  <p className="text-[10px] text-zinc-600 font-medium">Showing first 50 of {parsedStats.length} rows</p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-start gap-3">
             <AlertCircle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
             <div className="space-y-0.5">
@@ -557,10 +738,15 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
                   <p className="text-xs font-bold text-zinc-300">Creators will be imported as <span className="text-yellow-400">Bronze tier</span> with 1% commission.</p>
                   <p className="text-xs text-zinc-500 font-medium">Duplicates (matched by Discord handle) are skipped. Tiers can be updated after import.</p>
                 </>
-              ) : (
+              ) : mode === 'submissions' ? (
                 <>
                   <p className="text-xs font-bold text-zinc-300">Submissions will be created with <span className="text-yellow-400">pending</span> status awaiting review.</p>
                   <p className="text-xs text-zinc-500 font-medium">Rows with unknown creator handles will be skipped. Make sure creators are already in the database.</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs font-bold text-zinc-300">Creator stats will be imported for the selected <span className="text-yellow-400">month and period</span>.</p>
+                  <p className="text-xs text-zinc-500 font-medium">Existing stats for the same creator/month/period will be updated. Linking to creators is done by Discord handle.</p>
                 </>
               )}
             </div>
@@ -586,7 +772,9 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
                 ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Importing…</>
                 : mode === 'creators'
                   ? <><Users className="w-3.5 h-3.5" /> Import {count} Creators</>
-                  : <><LinkIcon className="w-3.5 h-3.5" /> Import {count} Submissions</>
+                  : mode === 'submissions'
+                    ? <><LinkIcon className="w-3.5 h-3.5" /> Import {count} Submissions</>
+                    : <><BarChart3 className="w-3.5 h-3.5" /> Import {count} Stats Rows</>
               }
             </button>
           </div>
@@ -602,7 +790,9 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
           <div>
             <h3 className="text-2xl font-bold text-zinc-100 tracking-tight">Import Complete</h3>
             <p className="text-zinc-500 mt-2 font-medium">
-              {mode === 'creators' ? 'Creator roster imported successfully.' : 'Submissions added to the review queue.'}
+              {mode === 'creators' ? 'Creator roster imported successfully.' : 
+               mode === 'submissions' ? 'Submissions added to the review queue.' : 
+               'Creator performance stats updated.'}
             </p>
           </div>
           <div className="flex items-center gap-6">
@@ -610,11 +800,24 @@ export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
               <p className="text-4xl font-bold font-mono text-emerald-400">{importResult.created}</p>
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Created</p>
             </div>
-            <div className="w-px h-12 bg-zinc-800" />
-            <div className="text-center">
-              <p className="text-4xl font-bold font-mono text-zinc-500">{importResult.skipped}</p>
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Skipped</p>
-            </div>
+            {importResult.updated !== undefined && (
+              <>
+                <div className="w-px h-12 bg-zinc-800" />
+                <div className="text-center">
+                  <p className="text-4xl font-bold font-mono text-emerald-400">{importResult.updated}</p>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Updated</p>
+                </div>
+              </>
+            )}
+            {importResult.skipped !== undefined && (
+              <>
+                <div className="w-px h-12 bg-zinc-800" />
+                <div className="text-center">
+                  <p className="text-4xl font-bold font-mono text-zinc-500">{importResult.skipped}</p>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Skipped</p>
+                </div>
+              </>
+            )}
           </div>
           {importResult.errors && importResult.errors.length > 0 && (
             <div className="w-full max-w-md p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-2xl text-left space-y-1">

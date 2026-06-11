@@ -165,4 +165,29 @@ export default defineSchema({
     .index("by_creator",    ["creatorId"])
     .index("by_status",     ["status"])
     .index("by_campaign",   ["campaign"]),
+
+  creator_stats: defineTable({
+    creatorId: v.optional(v.id("creators")),
+    discordHandle: v.string(), // Normalized handle for matching
+    campaign: v.union(v.literal("Afina"), v.literal("Sigma")),
+    month: v.string(), // "YYYY-MM"
+    period: v.union(v.literal("bonus_collection"), v.literal("mid_month")),
+    retainer: v.number(),
+    directOrders: v.number(),
+    indirectOrders: v.number(),
+    totalOrders: v.number(),
+    affiliateClicks: v.number(),
+    totalPosts: v.number(),
+    // Per-platform metrics
+    facebook: v.object({ views: v.number(), usViews: v.number() }),
+    instagram: v.object({ views: v.number(), usViews: v.number() }),
+    tiktok: v.object({ views: v.number(), usViews: v.number() }),
+    threads: v.object({ views: v.number(), usViews: v.number() }),
+    youtube: v.object({ views: v.number(), usViews: v.number() }),
+    totalViews: v.number(),
+    totalUsViews: v.number(),
+    importedAt: v.string(),
+  })
+    .index("by_campaign_period_month", ["campaign", "period", "month"])
+    .index("by_discord", ["discordHandle"]),
 });

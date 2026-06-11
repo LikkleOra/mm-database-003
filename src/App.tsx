@@ -22,6 +22,7 @@ import { SubmissionsView } from './components/dashboard/SubmissionsView';
 import { LeaderboardView } from './components/dashboard/LeaderboardView';
 import { PayoutsView } from './components/dashboard/PayoutsView';
 import { ImportView } from './components/dashboard/ImportView';
+import { CreatorStatsView } from './components/dashboard/CreatorStatsView';
 import { SubmitLinkView } from './components/dashboard/SubmitLinkView';
 import { AdShopView } from './components/dashboard/AdShopView';
 import { ActivityType } from './types';
@@ -245,6 +246,7 @@ function AuthenticatedApp() {
                activeView === 'submissions' ? 'Submissions' :
                activeView === 'leaderboard' ? 'Leaderboard' :
                activeView === 'payouts' ? 'Payouts' :
+               activeView === 'stats' ? 'Creator Stats Portal' :
                activeView.charAt(0).toUpperCase() + activeView.slice(1)}
             </h1>
             <p className="text-zinc-500 mt-1 font-medium text-sm">
@@ -253,6 +255,7 @@ function AuthenticatedApp() {
                activeView === 'submissions' ? 'Review and tag incoming creator content submissions.' :
                activeView === 'leaderboard' ? 'Ranked creator performance by GMV, posts, and orders.' :
                activeView === 'payouts' ? 'Track and manage creator payout lifecycle.' :
+               activeView === 'stats' ? 'Performance analytics and partner export reporting.' :
                'Analyzing aggregate team performance and tier metrics.'}
             </p>
             </div>
@@ -316,11 +319,12 @@ function AuthenticatedApp() {
         {activeView === 'submissions' && <SubmissionsView userRole={userRole} creators={creators} activeCreatorIds={activeCreatorIds} />}
         {activeView === 'leaderboard' && <LeaderboardView userRole={userRole} />}
         {activeView === 'payouts' && <PayoutsView userRole={userRole} creators={creators} />}
+        {activeView === 'stats' && <CreatorStatsView campaign={activeCampaign} />}
         {activeView === 'import' && <ImportView campaign={activeCampaign} />}
         {activeView === 'submit' && <SubmitLinkView campaign={activeCampaign} />}
         {activeView === 'adshop' && <AdShopView userRole={userRole} creators={creators} />}
 
-        {activeView !== 'database' && activeView !== 'timeline' && activeView !== 'reports' && activeView !== 'settings' && activeView !== 'videos' && activeView !== 'discord' && activeView !== 'youtube' && activeView !== 'submissions' && activeView !== 'leaderboard' && activeView !== 'payouts' && activeView !== 'import' && activeView !== 'submit' && activeView !== 'adshop' && (
+        {activeView !== 'database' && activeView !== 'timeline' && activeView !== 'reports' && activeView !== 'settings' && activeView !== 'videos' && activeView !== 'discord' && activeView !== 'youtube' && activeView !== 'submissions' && activeView !== 'leaderboard' && activeView !== 'payouts' && activeView !== 'stats' && activeView !== 'import' && activeView !== 'submit' && activeView !== 'adshop' && (
           <div className="flex flex-col items-center justify-center h-[60vh] text-center">
             <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center text-black mb-6 font-bold text-2xl">M</div>
             <h2 className="text-2xl font-bold text-zinc-100 italic font-serif tracking-tight">Module Under Development</h2>
