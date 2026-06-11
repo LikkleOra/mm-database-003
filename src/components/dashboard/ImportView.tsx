@@ -3,7 +3,7 @@ import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import {
   Upload, FileText, CheckCircle, AlertCircle, X,
-  ChevronRight, Users, RefreshCw, Link as LinkIcon,
+  ChevronRight, Users, RefreshCw, Link as LinkIcon, BarChart3,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import Papa from 'papaparse';
