@@ -4,13 +4,18 @@ import { api } from '../../../convex/_generated/api';
 import {
   BarChart3, Search, Calendar, Filter, ChevronDown, 
   Download, Facebook, Instagram, Music2, Hash, Youtube,
-  TrendingUp, Users, DollarSign, Target, MousePointer2, FileText
+  TrendingUp, Users, DollarSign, Target, MousePointer2, FileText, Upload
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 type Period = 'bonus_collection' | 'mid_month';
 
-export function CreatorStatsView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
+interface CreatorStatsViewProps {
+  campaign: 'Afina' | 'Sigma';
+  onViewChange: (view: string) => void;
+}
+
+export function CreatorStatsView({ campaign, onViewChange }: CreatorStatsViewProps) {
   const [period, setPeriod] = useState<Period>('bonus_collection');
   const [search, setSearch] = useState('');
   const [month, setMonth] = useState(''); // Default to all or current month
@@ -94,6 +99,13 @@ export function CreatorStatsView({ campaign }: { campaign: 'Afina' | 'Sigma' }) 
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => onViewChange('import')}
+              className="flex items-center gap-2 h-10 px-4 bg-emerald-500 text-black text-[10px] font-bold rounded-xl hover:bg-emerald-400 transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)] uppercase tracking-widest"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Import CSV
+            </button>
             <button
               onClick={handleExport}
               className="flex items-center gap-2 h-10 px-4 bg-zinc-900 border border-zinc-800 text-zinc-300 text-[10px] font-bold rounded-xl hover:bg-zinc-800 transition-all uppercase tracking-widest"

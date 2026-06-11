@@ -351,14 +351,14 @@ function cleanProfile(p: ParsedCreator['profile']): Record<string, string> | und
 
 const ACCEPT = '.csv';
 
-export function ImportView({ campaign }: { campaign: 'Afina' | 'Sigma' }) {
+export function ImportView({ campaign, initialMode = 'creators' }: { campaign: 'Afina' | 'Sigma', initialMode?: ImportMode }) {
   const bulkImportCreators    = useMutation(api.creators.bulkImport);
   const bulkImportSubmissions = useMutation(api.submissions.bulkImport);
   const bulkImportStats       = useMutation(api.creator_stats.bulkImport);
 
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [mode, setMode]               = useState<ImportMode>('creators');
+  const [mode, setMode]               = useState<ImportMode>(initialMode);
   const [step, setStep]               = useState<Step>('upload');
   const [fileName, setFileName]       = useState('');
   const [parseError, setParseError]   = useState<string | null>(null);

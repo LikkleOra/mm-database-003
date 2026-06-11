@@ -60,6 +60,7 @@ function AuthenticatedApp() {
 
   const [activeCampaign, setActiveCampaign] = useState<'Afina' | 'Sigma'>('Afina');
   const [activeView, setActiveView] = useState('database');
+  const [importMode, setImportMode] = useState<'creators' | 'submissions' | 'stats'>('creators');
 
   // Queries — undefined while loading
   const creatorsData = useQuery(api.creators.list, { campaign: activeCampaign });
@@ -218,7 +219,10 @@ function AuthenticatedApp() {
     <div className="flex min-h-screen bg-zinc-950 font-sans text-zinc-100" data-campaign={activeCampaign.toLowerCase()}>
       <Sidebar
         activeView={activeView}
-        onViewChange={setActiveView}
+        onViewChange={(view) => {
+          setActiveView(view);
+          if (view === 'import') setImportMode('creators');
+        }}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         activeCampaign={activeCampaign}
@@ -319,8 +323,16 @@ function AuthenticatedApp() {
         {activeView === 'submissions' && <SubmissionsView userRole={userRole} creators={creators} activeCreatorIds={activeCreatorIds} />}
         {activeView === 'leaderboard' && <LeaderboardView userRole={userRole} />}
         {activeView === 'payouts' && <PayoutsView userRole={userRole} creators={creators} />}
-        {activeView === 'stats' && <CreatorStatsView campaign={activeCampaign} />}
-        {activeView === 'import' && <ImportView campaign={activeCampaign} />}
+        {activeView === 'stats' && (
+          <CreatorStatsView 
+            campaign={activeCampaign} 
+            onViewChange={(view) => {
+              setActiveView(view);
+              if (view === 'import') setImportMode('stats');
+            }} 
+          />
+        )}
+        {activeView === 'import' && <ImportView campaign={activeCampaign} initialMode={importMode} />}
         {activeView === 'submit' && <SubmitLinkView campaign={activeCampaign} />}
         {activeView === 'adshop' && <AdShopView userRole={userRole} creators={creators} />}
 
