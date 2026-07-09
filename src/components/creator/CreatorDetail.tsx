@@ -7,7 +7,7 @@ import { useState, FormEvent } from 'react';
 import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
-import { Creator, Activity, Tier } from '../../types';
+import { Creator, Activity, Tier, PostingStatus } from '../../types';
 import {
   X, Plus, MessageSquare, Clock, ExternalLink, ChevronRight,
   AlertCircle, Calendar, Video, Instagram, Youtube, Pencil, Check, Trash2, Hash,
@@ -24,6 +24,18 @@ interface CreatorDetailProps {
 
 const TIERS: Tier[] = ['Bronze', 'Silver', 'Gold', 'Platinum'];
 const PLATFORMS = ['TikTok', 'Instagram', 'YouTube', 'Facebook', 'Twitch', 'Threads'] as const;
+const POSTING_STATUSES: PostingStatus[] = ['posting', 'occasional', 'not_posting'];
+const POSTING_STATUS_LABELS: Record<PostingStatus, string> = {
+  posting: 'Consistent',
+  occasional: 'Occasional',
+  not_posting: 'Not Posting',
+};
+const POSTING_STATUS_BADGE_CLASS: Record<PostingStatus | 'unset', string> = {
+  posting: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+  occasional: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500',
+  not_posting: 'bg-red-500/10 border-red-500/20 text-red-400',
+  unset: 'bg-zinc-900/50 border-zinc-800 text-zinc-600',
+};
 
 type MetricsState = {
   mtd: { gmv: number; posts: number; lives: number; orders: number };
@@ -37,6 +49,7 @@ export function CreatorDetail({ creator, activities, userRole, onClose, onAddAct
   const updateCreator = useMutation(api.creators.update);
   const removeCreator = useMutation(api.creators.remove);
   const addAccount = useMutation(api.social_accounts.create);
+  const updateAccountPostingStatus = useMutation(api.social_accounts.updatePostingStatus);
   const removeActivity = useMutation(api.activities.remove);
 
   // Edit mode state
@@ -47,6 +60,9 @@ export function CreatorDetail({ creator, activities, userRole, onClose, onAddAct
   const [editMetrics, setEditMetrics] = useState<MetricsState>(creator.metrics);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  // Per-account posting status state
+  const [savingAccountStatusId, setSavingAccountStatusId] = useState<string | null>(null);
 
   // Creator delete confirm
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -135,6 +151,17 @@ export function CreatorDetail({ creator, activities, userRole, onClose, onAddAct
       setAccountError(err instanceof Error ? err.message : 'Failed to add account.');
     } finally {
       setIsSavingAccount(false);
+    }
+  }
+
+  async function handleAccountPostingStatusChange(accountId: string, status: PostingStatus | undefined) {
+    setSavingAccountStatusId(accountId);
+    try {
+      await updateAccountPostingStatus({ id: accountId as Id<'social_accounts'>, postingStatus: status });
+    } catch {
+      // silent — badge stays at last known value
+    } finally {
+      setSavingAccountStatusId(null);
     }
   }
 
@@ -251,24 +278,26 @@ export function CreatorDetail({ creator, activities, userRole, onClose, onAddAct
               </div>
             </div>
 
-            {isEditing ? (
-              <button
-                onClick={() => setEditActive((v) => !v)}
-                className={`px-4 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-colors ${
-                  editActive ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-900/50 border-zinc-800 text-zinc-600 hover:text-zinc-400'
-                }`}
-              >
-                <div className={`w-1.5 h-1.5 rounded-full ${editActive ? 'bg-emerald-500' : 'bg-zinc-700'}`} />
-                {editActive ? 'Active' : 'Inactive'}
-              </button>
-            ) : (
-              <div className={`px-4 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${
-                creator.isActive ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-900/50 border-zinc-800 text-zinc-600'
-              }`}>
-                <div className={`w-1.5 h-1.5 rounded-full ${creator.isActive ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-zinc-700'}`} />
-                {creator.isActive ? 'Active' : 'Inactive'}
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {isEditing ? (
+                <button
+                  onClick={() => setEditActive((v) => !v)}
+                  className={`px-4 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-colors ${
+                    editActive ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-900/50 border-zinc-800 text-zinc-600 hover:text-zinc-400'
+                  }`}
+                >
+                  <div className={`w-1.5 h-1.5 rounded-full ${editActive ? 'bg-emerald-500' : 'bg-zinc-700'}`} />
+                  {editActive ? 'Active' : 'Inactive'}
+                </button>
+              ) : (
+                <div className={`px-4 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${
+                  creator.isActive ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-900/50 border-zinc-800 text-zinc-600'
+                }`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${creator.isActive ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-zinc-700'}`} />
+                  {creator.isActive ? 'Active' : 'Inactive'}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Metrics — read view */}
@@ -459,27 +488,56 @@ export function CreatorDetail({ creator, activities, userRole, onClose, onAddAct
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {creator.accounts.map((acc, idx) => (
-              <a
-                key={idx}
-                href={acc.url}
-                className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl hover:bg-zinc-800 hover:border-zinc-700 transition-all group flex items-center justify-between"
+              <div
+                key={acc.id ?? idx}
+                className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl hover:bg-zinc-800 hover:border-zinc-700 transition-all group flex flex-col gap-3"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-zinc-100 transition-colors">
-                    {acc.platform === 'TikTok' && <Video className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                    {acc.platform === 'Instagram' && <Instagram className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                    {acc.platform === 'YouTube' && <Youtube className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                    {acc.platform === 'Twitch' && <ChevronRight className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                    {acc.platform === 'Facebook' && <ExternalLink className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                    {acc.platform === 'Threads' && <Hash className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                <a
+                  href={acc.url}
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-zinc-100 transition-colors">
+                      {acc.platform === 'TikTok' && <Video className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                      {acc.platform === 'Instagram' && <Instagram className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                      {acc.platform === 'YouTube' && <Youtube className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                      {acc.platform === 'Twitch' && <ChevronRight className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                      {acc.platform === 'Facebook' && <ExternalLink className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                      {acc.platform === 'Threads' && <Hash className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{acc.platform}</p>
+                      <p className="text-sm font-bold text-zinc-200">@{acc.handle}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{acc.platform}</p>
-                    <p className="text-sm font-bold text-zinc-200">@{acc.handle}</p>
-                  </div>
+                  <ExternalLink className="w-4 h-4 text-zinc-700 group-hover:text-zinc-100 transition-colors" />
+                </a>
+
+                <div className="flex items-center justify-between pt-3 border-t border-zinc-800/70">
+                  <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Posting Status</span>
+                  {canWrite ? (
+                    <select
+                      value={acc.postingStatus ?? ''}
+                      disabled={savingAccountStatusId === acc.id}
+                      onChange={(e) => handleAccountPostingStatusChange(
+                        acc.id,
+                        e.target.value === '' ? undefined : (e.target.value as PostingStatus)
+                      )}
+                      className="h-[26px] px-2 rounded-full border border-zinc-800 bg-zinc-950/60 text-[9px] font-bold uppercase tracking-widest text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
+                    >
+                      <option value="">Not Evaluated</option>
+                      {POSTING_STATUSES.map((s) => (
+                        <option key={s} value={s}>{POSTING_STATUS_LABELS[s]}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className={`px-2.5 py-1 rounded-full border text-[9px] font-bold uppercase tracking-widest ${POSTING_STATUS_BADGE_CLASS[acc.postingStatus ?? 'unset']}`}>
+                      {acc.postingStatus ? POSTING_STATUS_LABELS[acc.postingStatus] : 'Not Evaluated'}
+                    </span>
+                  )}
                 </div>
-                <ExternalLink className="w-4 h-4 text-zinc-700 group-hover:text-zinc-100 transition-colors" />
-              </a>
+              </div>
             ))}
 
             {canWrite && (

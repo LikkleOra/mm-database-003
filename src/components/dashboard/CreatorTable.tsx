@@ -243,14 +243,34 @@ export function CreatorTable({ creators, onSelectCreator, onExport }: CreatorTab
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-1.5">
-                      {creator.accounts.map((acc, idx) => (
-                        <div key={idx} title={`${acc.platform}: ${acc.handle}`} className="w-6 h-6 rounded-lg bg-zinc-800/50 flex items-center justify-center text-zinc-500 border border-zinc-700 hover:text-zinc-300 transition-colors">
-                          {acc.platform === 'TikTok' && <Video className="w-3.5 h-3.5" />}
-                          {acc.platform === 'Instagram' && <Instagram className="w-3.5 h-3.5" />}
-                          {acc.platform === 'YouTube' && <Youtube className="w-3.5 h-3.5" />}
-                          {acc.platform === 'Twitch' && <Twitter className="w-3.5 h-3.5" />}
-                        </div>
-                      ))}
+                      {creator.accounts.map((acc, idx) => {
+                        const icon = (
+                          <>
+                            {acc.platform === 'TikTok' && <Video className="w-3.5 h-3.5" />}
+                            {acc.platform === 'Instagram' && <Instagram className="w-3.5 h-3.5" />}
+                            {acc.platform === 'YouTube' && <Youtube className="w-3.5 h-3.5" />}
+                            {acc.platform === 'Twitch' && <Twitter className="w-3.5 h-3.5" />}
+                          </>
+                        );
+                        const hasLink = acc.url && acc.url !== '#';
+                        return hasLink ? (
+                          <a
+                            key={idx}
+                            href={acc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            title={`${acc.platform}: ${acc.handle}`}
+                            className="w-6 h-6 rounded-lg bg-zinc-800/50 flex items-center justify-center text-zinc-500 border border-zinc-700 hover:text-zinc-300 hover:border-emerald-500/40 transition-colors"
+                          >
+                            {icon}
+                          </a>
+                        ) : (
+                          <div key={idx} title={`${acc.platform}: ${acc.handle}`} className="w-6 h-6 rounded-lg bg-zinc-800/50 flex items-center justify-center text-zinc-500 border border-zinc-700">
+                            {icon}
+                          </div>
+                        );
+                      })}
                     </div>
                   </td>
                   <td className="px-5 py-4">

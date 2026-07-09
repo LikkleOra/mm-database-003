@@ -10,6 +10,7 @@
 
 import type * as activities from "../activities.js";
 import type * as analytics from "../analytics.js";
+import type * as creator_stats from "../creator_stats.js";
 import type * as creators from "../creators.js";
 import type * as crons from "../crons.js";
 import type * as discord from "../discord.js";
@@ -32,6 +33,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   activities: typeof activities;
   analytics: typeof analytics;
+  creator_stats: typeof creator_stats;
   creators: typeof creators;
   crons: typeof crons;
   discord: typeof discord;

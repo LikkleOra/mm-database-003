@@ -1,5 +1,5 @@
 import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 
 const statsValidator = v.object({
@@ -28,17 +28,19 @@ export const bulkImport = mutation({
   },
   handler: async (ctx, { campaign, stats }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    if (!identity) throw new ConvexError("Not authenticated");
 
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk", (q) => q.eq("clerkId", identity.subject))
       .unique();
     if (!user || (user.role !== "admin" && user.role !== "manager"))
-      throw new Error("Unauthorized");
+      throw new ConvexError("Unauthorized: admin or manager role required to import creator stats");
 
     let created = 0;
     let updated = 0;
+    let skipped = 0;
+    const errors: string[] = [];
 
     // Fetch all creators once
     const allCreators = await ctx.db.query("creators").collect();
@@ -69,7 +71,13 @@ export const bulkImport = mutation({
     for (const s of stats) {
       const normalizedHandle = s.discordHandle.toLowerCase().replace(/^@/, "").trim();
       const creatorId = creatorsByHandle.get(normalizedHandle);
-      
+
+      if (!creatorId) {
+        errors.push(`Creator not found for Discord handle "${s.discordHandle}" — row skipped`);
+        skipped++;
+        continue;
+      }
+
       const key = `${s.month}|${s.period}|${normalizedHandle}`;
       const existing = existingStatsMap.get(key);
 
@@ -90,7 +98,7 @@ export const bulkImport = mutation({
       }
     }
 
-    return { created, updated };
+    return { created, updated, skipped, errors };
   },
 });
 
@@ -105,14 +113,11 @@ export const list = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
 
-    let q = ctx.db
+    const q = ctx.db
       .query("creator_stats")
       .withIndex("by_campaign_period_month", (q) => {
-        let query = q.eq("campaign", args.campaign).eq("period", args.period);
-        if (args.month) {
-          query = query.eq("month", args.month);
-        }
-        return query;
+        const query = q.eq("campaign", args.campaign).eq("period", args.period);
+        return args.month ? query.eq("month", args.month) : query;
       });
 
     const stats = await q.collect();
@@ -137,14 +142,11 @@ export const getSummary = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
 
-    let q = ctx.db
+    const q = ctx.db
       .query("creator_stats")
       .withIndex("by_campaign_period_month", (q) => {
-        let query = q.eq("campaign", args.campaign).eq("period", args.period);
-        if (args.month) {
-          query = query.eq("month", args.month);
-        }
-        return query;
+        const query = q.eq("campaign", args.campaign).eq("period", args.period);
+        return args.month ? query.eq("month", args.month) : query;
       });
 
     let stats = await q.collect();

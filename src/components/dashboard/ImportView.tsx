@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useMutation } from 'convex/react';
+import { ConvexError } from 'convex/values';
 import { api } from '../../../convex/_generated/api';
 import {
   Upload, FileText, CheckCircle, AlertCircle, X,
@@ -63,6 +64,32 @@ interface ParsedStats {
   _row: number;
 }
 
+// ── Import helpers ────────────────────────────────────────────────────────────
+
+const STATS_BATCH_SIZE = 25;
+const BATCH_TIMEOUT_MS = 30_000;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
+  return chunks;
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms)
+    ),
+  ]);
+}
+
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ConvexError) return typeof err.data === 'string' ? err.data : fallback;
+  if (err instanceof Error) return err.message;
+  return fallback;
+}
+
 // ── File parsing helpers ──────────────────────────────────────────────────────
 
 async function fileToRows(file: File): Promise<string[][]> {
@@ -121,10 +148,10 @@ function parseCreatorRows(rows: string[][]): ParsedCreator[] {
   const colInstagram     = col('instagram');
   const colTikTok        = col('tiktok');
   const colFacebook      = col('facebook');
-  const colNiche         = col('niche') !== -1 ? col('niche') : col('primary');
+  const colNiche         = col('niche') !== -1 ? col('niche') : col('primary niche');
   const colFormat        = col('format') !== -1 ? col('format') : col('content format');
   const colTone          = col('tone');
-  const colFrequency     = col('frequency') !== -1 ? col('frequency') : col('posting');
+  const colFrequency     = col('frequency') !== -1 ? col('frequency') : col('posting frequency');
 
   const results: ParsedCreator[] = [];
 
@@ -371,6 +398,7 @@ export function ImportView({ campaign, initialMode = 'creators' }: { campaign: '
   const [parseError, setParseError]   = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [importProgress, setImportProgress] = useState<{ batch: number; totalBatches: number } | null>(null);
 
   const [parsedCreators,    setParsedCreators]    = useState<ParsedCreator[]>([]);
   const [parsedSubmissions, setParsedSubmissions] = useState<ParsedSubmission[]>([]);
@@ -434,6 +462,7 @@ export function ImportView({ campaign, initialMode = 'creators' }: { campaign: '
     if (isImporting) return;
     setIsImporting(true);
     setImportError(null);
+    setImportProgress(null);
     try {
       if (mode === 'creators') {
         const payload = parsedCreators.map(({ discordHandle, name, profile, accounts }) => ({
@@ -449,14 +478,29 @@ export function ImportView({ campaign, initialMode = 'creators' }: { campaign: '
         setImportResult(result);
       } else {
         const payload = parsedStats.map(({ _row, ...s }) => s);
-        const result = await bulkImportStats({ campaign, stats: payload });
-        setImportResult({ created: result.created, updated: result.updated });
+        const batches = chunk(payload, STATS_BATCH_SIZE);
+        const combined = { created: 0, updated: 0, skipped: 0, errors: [] as string[] };
+
+        for (let i = 0; i < batches.length; i++) {
+          setImportProgress({ batch: i + 1, totalBatches: batches.length });
+          const result = await withTimeout(
+            bulkImportStats({ campaign, stats: batches[i] }),
+            BATCH_TIMEOUT_MS,
+            `Batch ${i + 1} of ${batches.length}`
+          );
+          combined.created += result.created ?? 0;
+          combined.updated += result.updated ?? 0;
+          combined.skipped += result.skipped ?? 0;
+          if (result.errors) combined.errors.push(...result.errors);
+        }
+        setImportResult(combined);
       }
       setStep('done');
     } catch (err) {
-      setImportError(err instanceof Error ? err.message : 'Import failed.');
+      setImportError(getErrorMessage(err, 'Import failed.'));
     } finally {
       setIsImporting(false);
+      setImportProgress(null);
     }
   }
 
@@ -610,7 +654,7 @@ export function ImportView({ campaign, initialMode = 'creators' }: { campaign: '
               <FileText className="w-4 h-4 text-zinc-500" />
               <span className="text-sm font-bold text-zinc-300">{fileName}</span>
               <span className="px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
-                {count} {mode === 'creators' ? 'creators' : 'submissions'} found
+                {count} {mode === 'creators' ? 'creators' : mode === 'submissions' ? 'submissions' : 'stats rows'} found
               </span>
             </div>
             <button onClick={reset} className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-500 hover:text-zinc-100 uppercase tracking-widest transition-colors">
@@ -742,8 +786,8 @@ export function ImportView({ campaign, initialMode = 'creators' }: { campaign: '
             <div className="space-y-0.5">
               {mode === 'creators' ? (
                 <>
-                  <p className="text-xs font-bold text-zinc-300">Creators will be imported as <span className="text-yellow-400">Bronze tier</span> with 1% commission.</p>
-                  <p className="text-xs text-zinc-500 font-medium">Duplicates (matched by Discord handle) are skipped. Tiers can be updated after import.</p>
+                  <p className="text-xs font-bold text-zinc-300">New creators will be imported as <span className="text-yellow-400">Bronze tier</span> with 1% commission.</p>
+                  <p className="text-xs text-zinc-500 font-medium">Existing creators (matched by Discord handle) will have their profile and platform links updated, not skipped. Tiers can be updated after import.</p>
                 </>
               ) : mode === 'submissions' ? (
                 <>
@@ -776,7 +820,7 @@ export function ImportView({ campaign, initialMode = 'creators' }: { campaign: '
               className="flex items-center gap-2 px-8 h-11 bg-emerald-500 text-black text-[10px] font-bold rounded-xl hover:bg-emerald-400 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] uppercase tracking-widest disabled:opacity-50"
             >
               {isImporting
-                ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Importing…</>
+                ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> {importProgress ? `Importing batch ${importProgress.batch} of ${importProgress.totalBatches}…` : 'Importing…'}</>
                 : mode === 'creators'
                   ? <><Users className="w-3.5 h-3.5" /> Import {count} Creators</>
                   : mode === 'submissions'

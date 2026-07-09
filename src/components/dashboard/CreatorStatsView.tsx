@@ -55,9 +55,9 @@ export function CreatorStatsView({ campaign, onViewChange }: CreatorStatsViewPro
     
     const rows = stats.map(s => [
       s.discordHandle, s.month, s.retainer, s.directOrders, s.indirectOrders,
-      s.totalOrders, s.affiliateClicks, s.totalPosts, 
-      s.facebook.views, s.instagram.views, s.tiktok.views, 
-      s.threads.views, s.youtube.views, s.totalViews, s.totalUsViews
+      s.totalOrders, s.affiliateClicks, s.totalPosts,
+      s.facebook?.views ?? 0, s.instagram?.views ?? 0, s.tiktok?.views ?? 0,
+      s.threads?.views ?? 0, s.youtube?.views ?? 0, s.totalViews ?? 0, s.totalUsViews ?? 0
     ]);
     
     const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -260,30 +260,30 @@ export function CreatorStatsView({ campaign, onViewChange }: CreatorStatsViewPro
                   <td className="px-6 py-4 text-zinc-400 font-medium">{s.totalPosts}</td>
                   <td className="px-6 py-4 text-zinc-400">
                     <div className="flex flex-col">
-                      <span className="font-bold">{s.tiktok.views.toLocaleString()}</span>
-                      <span className="text-[9px] text-zinc-600">US: {s.tiktok.usViews.toLocaleString()}</span>
+                      <span className="font-bold">{(s.tiktok?.views ?? 0).toLocaleString()}</span>
+                      <span className="text-[9px] text-zinc-600">US: {(s.tiktok?.usViews ?? 0).toLocaleString()}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-zinc-400">
                     <div className="flex flex-col">
-                      <span className="font-bold">{s.instagram.views.toLocaleString()}</span>
-                      <span className="text-[9px] text-zinc-600">US: {s.instagram.usViews.toLocaleString()}</span>
+                      <span className="font-bold">{(s.instagram?.views ?? 0).toLocaleString()}</span>
+                      <span className="text-[9px] text-zinc-600">US: {(s.instagram?.usViews ?? 0).toLocaleString()}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-zinc-400">
                     <div className="flex flex-col">
-                      <span className="font-bold">{s.facebook.views.toLocaleString()}</span>
-                      <span className="text-[9px] text-zinc-600">US: {s.facebook.usViews.toLocaleString()}</span>
+                      <span className="font-bold">{(s.facebook?.views ?? 0).toLocaleString()}</span>
+                      <span className="text-[9px] text-zinc-600">US: {(s.facebook?.usViews ?? 0).toLocaleString()}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-zinc-400">
                     <div className="flex flex-col">
-                      <span className="font-bold">{s.youtube.views.toLocaleString()}</span>
-                      <span className="text-[9px] text-zinc-600">US: {s.youtube.usViews.toLocaleString()}</span>
+                      <span className="font-bold">{(s.youtube?.views ?? 0).toLocaleString()}</span>
+                      <span className="text-[9px] text-zinc-600">US: {(s.youtube?.usViews ?? 0).toLocaleString()}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-zinc-100 font-bold">{s.totalViews.toLocaleString()}</td>
-                  <td className="px-6 py-4 text-zinc-100 font-bold">{s.totalUsViews.toLocaleString()}</td>
+                  <td className="px-6 py-4 text-zinc-100 font-bold">{(s.totalViews ?? 0).toLocaleString()}</td>
+                  <td className="px-6 py-4 text-zinc-100 font-bold">{(s.totalUsViews ?? 0).toLocaleString()}</td>
                 </tr>
               ))}
               {(!stats || stats.length === 0) && (
@@ -298,26 +298,5 @@ export function CreatorStatsView({ campaign, onViewChange }: CreatorStatsViewPro
         </div>
       </div>
     </div>
-  );
-}
-
-function ShoppingBagIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-      <path d="M3 6h18" />
-      <path d="M16 10a4 4 0 0 1-8 0" />
-    </svg>
   );
 }

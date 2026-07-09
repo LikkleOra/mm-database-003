@@ -42,10 +42,14 @@ export const list = query({
       managerId: creator.managerId,
       joinedAt: creator.joinedAt,
       metrics: creator.metrics ?? DEFAULT_METRICS,
+      postingFrequency: creator.profile?.postingFrequency,
+      postingFrequencyUpdatedAt: creator.profile?.postingFrequencyUpdatedAt,
       accounts: (accountsByCreator.get(creator._id as string) ?? []).map((a) => ({
+        id: a._id as string,
         platform: a.platform,
         handle: a.handle,
         url: a.url,
+        postingStatus: a.postingStatus,
       })),
     }));
   },
@@ -75,10 +79,14 @@ export const getById = query({
       managerId: creator.managerId,
       joinedAt: creator.joinedAt,
       metrics: creator.metrics ?? DEFAULT_METRICS,
+      postingFrequency: creator.profile?.postingFrequency,
+      postingFrequencyUpdatedAt: creator.profile?.postingFrequencyUpdatedAt,
       accounts: accounts.map((a) => ({
+        id: a._id as string,
         platform: a.platform,
         handle: a.handle,
         url: a.url,
+        postingStatus: a.postingStatus,
       })),
     };
   },
@@ -154,9 +162,10 @@ export const update = mutation({
       throw new Error("Unauthorized");
 
     const { id, ...updates } = args;
-    const patch = Object.fromEntries(
+    const patch: Record<string, unknown> = Object.fromEntries(
       Object.entries(updates).filter(([, val]) => val !== undefined)
     );
+
     await ctx.db.patch(id, patch);
   },
 });
@@ -233,7 +242,9 @@ export const bulkImport = mutation({
     );
 
     let created = 0;
-    let skipped = 0;
+    let updated = 0;
+    const skipped = 0;
+    const errors: string[] = [];
 
     for (const c of creators) {
       const existingCreator = existingByHandle.get(c.discordHandle.toLowerCase());
@@ -259,17 +270,45 @@ export const bulkImport = mutation({
           });
         }
         created++;
-      } else if (!existingCreator.campaign) {
-        // Orphaned creator (no campaign assigned) — claim them for this campaign
-        await ctx.db.patch(existingCreator._id, { campaign });
-        created++;
-      } else {
-        // Already assigned to a campaign — skip
-        skipped++;
+        continue;
       }
+
+      // Existing creator — refresh name/profile, claim campaign if orphaned,
+      // and upsert their social accounts instead of silently skipping the row.
+      const incomingProfile = Object.fromEntries(
+        Object.entries(c.profile ?? {}).filter(([, val]) => val !== undefined && val !== "")
+      );
+      const patch: Record<string, unknown> = {
+        name: c.name,
+        profile: { ...(existingCreator.profile ?? {}), ...incomingProfile },
+      };
+      if (!existingCreator.campaign) patch.campaign = campaign;
+      await ctx.db.patch(existingCreator._id, patch);
+
+      const existingAccounts = await ctx.db
+        .query("social_accounts")
+        .withIndex("by_creator", (q) => q.eq("creatorId", existingCreator._id))
+        .collect();
+      const existingAccountByPlatform = new Map(existingAccounts.map((a) => [a.platform, a]));
+
+      for (const account of c.accounts) {
+        const existingAccount = existingAccountByPlatform.get(account.platform);
+        if (existingAccount) {
+          await ctx.db.patch(existingAccount._id, { handle: account.handle, url: account.url });
+        } else {
+          await ctx.db.insert("social_accounts", {
+            creatorId: existingCreator._id,
+            platform: account.platform,
+            handle: account.handle,
+            url: account.url,
+          });
+        }
+      }
+
+      updated++;
     }
 
-    return { created, skipped };
+    return { created, updated, skipped, errors };
   },
 });
 

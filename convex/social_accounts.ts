@@ -1,5 +1,5 @@
 import { mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 
 export const create = mutation({
   args: {
@@ -17,14 +17,14 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    if (!identity) throw new ConvexError("Not authenticated");
 
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk", (q) => q.eq("clerkId", identity.subject))
       .unique();
     if (!user || (user.role !== "admin" && user.role !== "manager"))
-      throw new Error("Unauthorized");
+      throw new ConvexError("Unauthorized: admin or manager role required");
 
     return await ctx.db.insert("social_accounts", {
       creatorId: args.creatorId,
@@ -39,15 +39,35 @@ export const remove = mutation({
   args: { id: v.id("social_accounts") },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    if (!identity) throw new ConvexError("Not authenticated");
 
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk", (q) => q.eq("clerkId", identity.subject))
       .unique();
     if (!user || (user.role !== "admin" && user.role !== "manager"))
-      throw new Error("Unauthorized");
+      throw new ConvexError("Unauthorized: admin or manager role required");
 
     await ctx.db.delete(args.id);
+  },
+});
+
+export const updatePostingStatus = mutation({
+  args: {
+    id: v.id("social_accounts"),
+    postingStatus: v.optional(v.union(v.literal("not_posting"), v.literal("occasional"), v.literal("posting"))),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new ConvexError("Not authenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user || (user.role !== "admin" && user.role !== "manager"))
+      throw new ConvexError("Unauthorized: admin or manager role required");
+
+    await ctx.db.patch(args.id, { postingStatus: args.postingStatus });
   },
 });

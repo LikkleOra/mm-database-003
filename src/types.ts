@@ -5,10 +5,14 @@
 
 export type Tier = 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
 
+export type PostingStatus = 'not_posting' | 'occasional' | 'posting';
+
 export interface SocialAccount {
+  id: string;
   platform: 'TikTok' | 'Instagram' | 'YouTube' | 'Facebook' | 'Twitch' | 'Threads';
   handle: string;
   url: string;
+  postingStatus?: PostingStatus;
 }
 
 export interface MetricRollup {
@@ -32,6 +36,8 @@ export interface Creator {
     sevenDay: MetricRollup;
   };
   managerId?: string;
+  postingFrequency?: string;
+  postingFrequencyUpdatedAt?: string;
 }
 
 export type ActivityType = 'win' | 'loss' | 'observation' | 'adjustment';

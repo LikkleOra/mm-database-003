@@ -1,5 +1,5 @@
 import { mutation, query, internalQuery } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 
 // Syncs the signed-in Clerk user into the Convex users table.
 // Call this once on first sign-in from the frontend.
@@ -7,7 +7,7 @@ export const upsert = mutation({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    if (!identity) throw new ConvexError("Not authenticated");
 
     const existing = await ctx.db
       .query("users")
@@ -76,14 +76,14 @@ export const updateRole = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    if (!identity) throw new ConvexError("Not authenticated");
 
     const requester = await ctx.db
       .query("users")
       .withIndex("by_clerk", (q) => q.eq("clerkId", identity.subject))
       .unique();
     if (!requester || requester.role !== "admin")
-      throw new Error("Unauthorized: admin only");
+      throw new ConvexError("Unauthorized: admin only");
 
     await ctx.db.patch(args.userId, { role: args.role });
   },
