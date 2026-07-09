@@ -7,10 +7,10 @@ import { useState, FormEvent } from 'react';
 import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
-import { Creator, Activity, Tier } from '../../types';
+import { Creator, Activity, Tier, PostingStatus } from '../../types';
 import {
   X, Plus, MessageSquare, Clock, ExternalLink, ChevronRight,
-  AlertCircle, Calendar, Video, Instagram, Youtube, Pencil, Check, Trash2, Hash,
+  AlertCircle, Calendar, Video, Instagram, Youtube, Pencil, Check, Trash2, Hash, ChevronDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -38,6 +38,7 @@ export function CreatorDetail({ creator, activities, userRole, onClose, onAddAct
   const removeCreator = useMutation(api.creators.remove);
   const addAccount = useMutation(api.social_accounts.create);
   const removeActivity = useMutation(api.activities.remove);
+  const updatePostingStatus = useMutation(api.social_accounts.updatePostingStatus);
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -459,27 +460,79 @@ export function CreatorDetail({ creator, activities, userRole, onClose, onAddAct
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {creator.accounts.map((acc, idx) => (
-              <a
+              <div
                 key={idx}
-                href={acc.url}
-                className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl hover:bg-zinc-800 hover:border-zinc-700 transition-all group flex items-center justify-between"
+                className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl hover:bg-zinc-800/50 hover:border-zinc-700 transition-all group"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-zinc-100 transition-colors">
-                    {acc.platform === 'TikTok' && <Video className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                    {acc.platform === 'Instagram' && <Instagram className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                    {acc.platform === 'YouTube' && <Youtube className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                    {acc.platform === 'Twitch' && <ChevronRight className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                    {acc.platform === 'Facebook' && <ExternalLink className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                    {acc.platform === 'Threads' && <Hash className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{acc.platform}</p>
-                    <p className="text-sm font-bold text-zinc-200">@{acc.handle}</p>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <a
+                    href={acc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-4 flex-1 min-w-0"
+                  >
+                    <div className="w-11 h-11 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-zinc-100 transition-colors shrink-0">
+                      {acc.platform === 'TikTok' && <Video className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                      {acc.platform === 'Instagram' && <Instagram className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                      {acc.platform === 'YouTube' && <Youtube className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                      {acc.platform === 'Twitch' && <ChevronRight className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                      {acc.platform === 'Facebook' && <ExternalLink className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                      {acc.platform === 'Threads' && <Hash className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{acc.platform}</p>
+                      <p className="text-sm font-bold text-zinc-200 truncate">@{acc.handle}</p>
+                    </div>
+                  </a>
+                  <a href={acc.url} target="_blank" rel="noopener noreferrer" className="shrink-0 ml-2">
+                    <ExternalLink className="w-4 h-4 text-zinc-700 group-hover:text-zinc-100 transition-colors" />
+                  </a>
                 </div>
-                <ExternalLink className="w-4 h-4 text-zinc-700 group-hover:text-zinc-100 transition-colors" />
-              </a>
+                <div className="mt-3 pt-3 border-t border-zinc-800/50">
+                  {canWrite ? (
+                    <div className="relative">
+                      <select
+                        value={acc.postingStatus ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value as PostingStatus | '';
+                          updatePostingStatus({
+                            id: acc._id as any,
+                            postingStatus: val === '' ? undefined : val,
+                          });
+                        }}
+                        className="w-full appearance-none bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest cursor-pointer pr-7 transition-colors hover:border-zinc-600 focus:border-emerald-500/50 focus:outline-none"
+                        style={{
+                          color: acc.postingStatus === 'posting_consistently' ? '#34d399'
+                            : acc.postingStatus === 'posting_occasionally' ? '#fbbf24'
+                            : acc.postingStatus === 'not_posting' ? '#f87171'
+                            : '#71717a',
+                        }}
+                      >
+                        <option value="" className="text-zinc-500">Not Evaluated</option>
+                        <option value="posting_consistently" className="text-emerald-400">Consistent</option>
+                        <option value="posting_occasionally" className="text-yellow-400">Occasional</option>
+                        <option value="not_posting" className="text-red-400">Not Posting</option>
+                      </select>
+                      <ChevronDown className="w-3 h-3 text-zinc-600 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  ) : (
+                    <span
+                      className="text-[10px] font-bold uppercase tracking-widest"
+                      style={{
+                        color: acc.postingStatus === 'posting_consistently' ? '#34d399'
+                          : acc.postingStatus === 'posting_occasionally' ? '#fbbf24'
+                          : acc.postingStatus === 'not_posting' ? '#f87171'
+                          : '#71717a',
+                      }}
+                    >
+                      {acc.postingStatus === 'posting_consistently' ? 'Consistent'
+                        : acc.postingStatus === 'posting_occasionally' ? 'Occasional'
+                        : acc.postingStatus === 'not_posting' ? 'Not Posting'
+                        : 'Not Evaluated'}
+                    </span>
+                  )}
+                </div>
+              </div>
             ))}
 
             {canWrite && (

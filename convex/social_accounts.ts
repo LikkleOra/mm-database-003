@@ -35,6 +35,30 @@ export const create = mutation({
   },
 });
 
+export const updatePostingStatus = mutation({
+  args: {
+    id: v.id("social_accounts"),
+    postingStatus: v.optional(v.union(
+      v.literal("posting_consistently"),
+      v.literal("posting_occasionally"),
+      v.literal("not_posting"),
+    )),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user || (user.role !== "admin" && user.role !== "manager"))
+      throw new Error("Unauthorized");
+
+    await ctx.db.patch(args.id, { postingStatus: args.postingStatus });
+  },
+});
+
 export const remove = mutation({
   args: { id: v.id("social_accounts") },
   handler: async (ctx, args) => {

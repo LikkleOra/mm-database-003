@@ -371,6 +371,7 @@ export function ImportView({ campaign, initialMode = 'creators' }: { campaign: '
   const [parseError, setParseError]   = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
 
   const [parsedCreators,    setParsedCreators]    = useState<ParsedCreator[]>([]);
   const [parsedSubmissions, setParsedSubmissions] = useState<ParsedSubmission[]>([]);
@@ -434,6 +435,7 @@ export function ImportView({ campaign, initialMode = 'creators' }: { campaign: '
     if (isImporting) return;
     setIsImporting(true);
     setImportError(null);
+    setImportProgress(null);
     try {
       if (mode === 'creators') {
         const payload = parsedCreators.map(({ discordHandle, name, profile, accounts }) => ({
@@ -448,15 +450,28 @@ export function ImportView({ campaign, initialMode = 'creators' }: { campaign: '
         const result = await bulkImportSubmissions({ campaign, submissions: payload });
         setImportResult(result);
       } else {
-        const payload = parsedStats.map(({ _row, ...s }) => s);
-        const result = await bulkImportStats({ campaign, stats: payload });
-        setImportResult({ created: result.created, updated: result.updated });
+        const allStats = parsedStats.map(({ _row, ...s }) => s);
+        const BATCH_SIZE = 25;
+        const totalBatches = Math.ceil(allStats.length / BATCH_SIZE);
+        let totalCreated = 0;
+        let totalUpdated = 0;
+
+        for (let i = 0; i < totalBatches; i++) {
+          setImportProgress({ current: i + 1, total: totalBatches });
+          const batch = allStats.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
+          const result = await bulkImportStats({ campaign, stats: batch });
+          totalCreated += result.created;
+          totalUpdated += result.updated;
+        }
+
+        setImportResult({ created: totalCreated, updated: totalUpdated });
       }
       setStep('done');
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'Import failed.');
     } finally {
       setIsImporting(false);
+      setImportProgress(null);
     }
   }
 
@@ -610,7 +625,7 @@ export function ImportView({ campaign, initialMode = 'creators' }: { campaign: '
               <FileText className="w-4 h-4 text-zinc-500" />
               <span className="text-sm font-bold text-zinc-300">{fileName}</span>
               <span className="px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
-                {count} {mode === 'creators' ? 'creators' : 'submissions'} found
+                {count} {mode === 'creators' ? 'creators' : mode === 'submissions' ? 'submissions' : 'stats rows'} found
               </span>
             </div>
             <button onClick={reset} className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-500 hover:text-zinc-100 uppercase tracking-widest transition-colors">
@@ -776,7 +791,7 @@ export function ImportView({ campaign, initialMode = 'creators' }: { campaign: '
               className="flex items-center gap-2 px-8 h-11 bg-emerald-500 text-black text-[10px] font-bold rounded-xl hover:bg-emerald-400 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] uppercase tracking-widest disabled:opacity-50"
             >
               {isImporting
-                ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Importing…</>
+                ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> {importProgress ? `Batch ${importProgress.current}/${importProgress.total}…` : 'Importing…'}</>
                 : mode === 'creators'
                   ? <><Users className="w-3.5 h-3.5" /> Import {count} Creators</>
                   : mode === 'submissions'

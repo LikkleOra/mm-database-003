@@ -43,9 +43,11 @@ export const list = query({
       joinedAt: creator.joinedAt,
       metrics: creator.metrics ?? DEFAULT_METRICS,
       accounts: (accountsByCreator.get(creator._id as string) ?? []).map((a) => ({
+        _id: a._id as string,
         platform: a.platform,
         handle: a.handle,
         url: a.url,
+        postingStatus: a.postingStatus,
       })),
     }));
   },
@@ -76,9 +78,11 @@ export const getById = query({
       joinedAt: creator.joinedAt,
       metrics: creator.metrics ?? DEFAULT_METRICS,
       accounts: accounts.map((a) => ({
+        _id: a._id as string,
         platform: a.platform,
         handle: a.handle,
         url: a.url,
+        postingStatus: a.postingStatus,
       })),
     };
   },

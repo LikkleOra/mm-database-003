@@ -41,6 +41,11 @@ export default defineSchema({
     platform: v.union(v.literal("TikTok"), v.literal("Instagram"), v.literal("YouTube"), v.literal("Facebook"), v.literal("Twitch"), v.literal("Threads")),
     handle: v.string(),
     url: v.string(),
+    postingStatus: v.optional(v.union(
+      v.literal("posting_consistently"),
+      v.literal("posting_occasionally"),
+      v.literal("not_posting"),
+    )),
   }).index("by_creator", ["creatorId"]),
 
   videos: defineTable({

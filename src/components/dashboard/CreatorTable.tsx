@@ -244,7 +244,16 @@ export function CreatorTable({ creators, onSelectCreator, onExport }: CreatorTab
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-1.5">
                       {creator.accounts.map((acc, idx) => (
-                        <div key={idx} title={`${acc.platform}: ${acc.handle}`} className="w-6 h-6 rounded-lg bg-zinc-800/50 flex items-center justify-center text-zinc-500 border border-zinc-700 hover:text-zinc-300 transition-colors">
+                        <div
+                          key={idx}
+                          title={`${acc.platform}: @${acc.handle}${acc.postingStatus ? ` (${acc.postingStatus.replace(/_/g, ' ')})` : ''}`}
+                          className={`w-6 h-6 rounded-lg bg-zinc-800/50 flex items-center justify-center text-zinc-500 border hover:text-zinc-300 transition-colors ${
+                            acc.postingStatus === 'posting_consistently' ? 'border-emerald-500/60'
+                            : acc.postingStatus === 'posting_occasionally' ? 'border-yellow-500/60'
+                            : acc.postingStatus === 'not_posting' ? 'border-red-500/60'
+                            : 'border-zinc-700'
+                          }`}
+                        >
                           {acc.platform === 'TikTok' && <Video className="w-3.5 h-3.5" />}
                           {acc.platform === 'Instagram' && <Instagram className="w-3.5 h-3.5" />}
                           {acc.platform === 'YouTube' && <Youtube className="w-3.5 h-3.5" />}
