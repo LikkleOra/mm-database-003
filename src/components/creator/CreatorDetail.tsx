@@ -487,32 +487,48 @@ export function CreatorDetail({ creator, activities, userRole, onClose, onAddAct
             Platform Integrations
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {creator.accounts.map((acc, idx) => (
+            {creator.accounts.map((acc, idx) => {
+              const hasLink = acc.url && acc.url !== '#';
+              const platformIcon = (
+                <>
+                  {acc.platform === 'TikTok' && <Video className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                  {acc.platform === 'Instagram' && <Instagram className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                  {acc.platform === 'YouTube' && <Youtube className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                  {acc.platform === 'Twitch' && <ChevronRight className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                  {acc.platform === 'Facebook' && <ExternalLink className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                  {acc.platform === 'Threads' && <Hash className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                </>
+              );
+              const platformDetails = (
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-zinc-100 transition-colors">
+                    {platformIcon}
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{acc.platform}</p>
+                    <p className="text-sm font-bold text-zinc-200">@{acc.handle}</p>
+                  </div>
+                </div>
+              );
+              return (
               <div
                 key={acc.id ?? idx}
                 className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl hover:bg-zinc-800 hover:border-zinc-700 transition-all group flex flex-col gap-3"
               >
-                <a
-                  href={acc.url}
-                  target="_blank" rel="noopener noreferrer"
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-11 h-11 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-zinc-100 transition-colors">
-                      {acc.platform === 'TikTok' && <Video className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                      {acc.platform === 'Instagram' && <Instagram className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                      {acc.platform === 'YouTube' && <Youtube className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                      {acc.platform === 'Twitch' && <ChevronRight className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                      {acc.platform === 'Facebook' && <ExternalLink className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                      {acc.platform === 'Threads' && <Hash className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{acc.platform}</p>
-                      <p className="text-sm font-bold text-zinc-200">@{acc.handle}</p>
-                    </div>
+                {hasLink ? (
+                  <a
+                    href={acc.url}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-between"
+                  >
+                    {platformDetails}
+                    <ExternalLink className="w-4 h-4 text-zinc-700 group-hover:text-zinc-100 transition-colors" />
+                  </a>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    {platformDetails}
                   </div>
-                  <ExternalLink className="w-4 h-4 text-zinc-700 group-hover:text-zinc-100 transition-colors" />
-                </a>
+                )}
 
                 <div className="flex items-center justify-between pt-3 border-t border-zinc-800/70">
                   <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Posting Status</span>
@@ -538,7 +554,8 @@ export function CreatorDetail({ creator, activities, userRole, onClose, onAddAct
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
 
             {canWrite && (
               <button
